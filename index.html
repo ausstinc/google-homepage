@@ -346,11 +346,11 @@
       <input type="range" id="set-volume" min="0" max="100" step="5">
     </div>
     <div class="setting-row">
-      <label for="set-silent">Play alerts in silent mode</label>
+      <label for="set-silent">Silent mode &amp; screen-locked alerts</label>
       <input type="checkbox" id="set-silent">
     </div>
     <div class="setting-hint">
-      iPhones mute web beeps when the ring/silent switch is on. Leave this OFF to keep your music mixing (just flip the ring switch on). Turn it ON to force alerts through the silent switch &mdash; but this may pause your Spotify/Apple Music.
+      Turn this ON to keep alerts playing through the ring/silent switch <b>and</b> while your screen is locked &mdash; recommended for running with the phone in a pocket. It takes over audio, so your Spotify/Apple Music may pause. Leave it OFF to mix quietly under music (needs the ring switch on, and alerts stop when the screen locks).
     </div>
     <div class="setting-row">
       <label>Test the alert sound</label>
@@ -366,6 +366,8 @@
 </div>
 
 <audio id="keepalive" loop preload="auto" src="data:audio/wav;base64,UklGRtQEAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YbAEAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIA=">
+
+<audio id="workout-audio" preload="auto"></audio>
 
 <script>
 (function () {
@@ -408,7 +410,10 @@
       segs.push({ type: "walk", label: "Walk", duration: Math.round(s.walk * 60), rep: i });
     }
     if (s.cooldown > 0) segs.push({ type: "cooldown", label: "Cool-down", duration: Math.round(s.cooldown * 60) });
-    return segs.filter(function (seg) { return seg.duration > 0; });
+    segs = segs.filter(function (seg) { return seg.duration > 0; });
+    var acc = 0;
+    segs.forEach(function (seg) { seg.startTime = acc; acc += seg.duration; seg.endTime = acc; });
+    return segs;
   }
 
   var segments = buildSegments(settings);
@@ -416,15 +421,12 @@
   // ---------------- State ----------------
   var STATE_IDLE = "idle", STATE_RUNNING = "running", STATE_PAUSED = "paused", STATE_DONE = "done";
   var state = STATE_IDLE;
-  var currentIndex = 0;
-  var segmentEndTime = 0;      // ms epoch, when current segment ends
-  var remainingMsAtPause = 0;
-  var workoutStartTime = 0;
-  var pausedAccumMs = 0;
-  var pauseStartedAt = 0;
-  var beepedFlags = {};        // which countdown seconds have already beeped for current segment
+  var currentIndex = -1;       // segment currently displayed (-1 = none yet)
+  var totalDuration = segments.length ? segments[segments.length - 1].endTime : 0;
   var tickHandle = null;
   var wakeLock = null;
+  var trackUrl = null;         // object URL of the pre-rendered workout audio
+  var trackDirty = true;       // true when the plan changed and audio must be re-rendered
 
   // ---------------- DOM ----------------
   var $stage = document.getElementById("stage");
@@ -444,6 +446,7 @@
   var $settingsOverlay = document.getElementById("settings-overlay");
   var $settingsLocked = document.getElementById("settings-locked");
   var $keepalive = document.getElementById("keepalive");
+  var $workoutAudio = document.getElementById("workout-audio");
 
   var $setWarmup = document.getElementById("set-warmup");
   var $setRun = document.getElementById("set-run");
@@ -506,6 +509,83 @@
     });
   }
 
+  // ---------------- Pre-rendered workout track ----------------
+  // The whole workout (every countdown tick, phase-change tone and the finish
+  // chime) is rendered into one audio clip and played through a media element.
+  // iOS keeps media playback alive when the screen is locked, so the alerts
+  // keep firing even with the screen off — which Web Audio beeps cannot do.
+  function bufferToWavBlob(buffer) {
+    var sampleRate = buffer.sampleRate;
+    var samples = buffer.getChannelData(0);
+    var len = samples.length;
+    var dataSize = len * 2;
+    var ab = new ArrayBuffer(44 + dataSize);
+    var view = new DataView(ab);
+    function ws(off, str) { for (var i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i)); }
+    ws(0, "RIFF"); view.setUint32(4, 36 + dataSize, true); ws(8, "WAVE");
+    ws(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+    ws(36, "data"); view.setUint32(40, dataSize, true);
+    var off = 44;
+    for (var i = 0; i < len; i++) {
+      var s = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      off += 2;
+    }
+    return new Blob([ab], { type: "audio/wav" });
+  }
+
+  function renderWorkoutTrack() {
+    var sampleRate = 8000;
+    var length = Math.ceil((totalDuration + 1.5) * sampleRate);
+    var OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    var ctx = new OfflineCtx(1, Math.max(sampleRate, length), sampleRate);
+    var amp = Math.min(0.9, (settings.volume / 100) * 0.6);
+
+    function tone(atSec, freq, durSec, level) {
+      if (atSec < 0) return;
+      var osc = ctx.createOscillator();
+      var g = ctx.createGain();
+      var v = amp * level;
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0, atSec);
+      g.gain.linearRampToValueAtTime(v, atSec + 0.008);
+      g.gain.linearRampToValueAtTime(0, atSec + durSec);
+      osc.connect(g); g.connect(ctx.destination);
+      osc.start(atSec); osc.stop(atSec + durSec + 0.02);
+    }
+
+    segments.forEach(function (seg, i) {
+      var end = seg.endTime;
+      [3, 2, 1].forEach(function (n) {
+        var at = end - n;
+        if (at > seg.startTime + 0.1) tone(at, 880, 0.12, 0.8);
+      });
+      if (i < segments.length - 1) {
+        if (segments[i + 1].type === "run") { tone(end, 660, 0.14, 1); tone(end + 0.15, 990, 0.18, 1); }
+        else { tone(end, 500, 0.22, 1); }
+      }
+    });
+    // completion chime, baked right at the end so it plays as the clip finishes
+    [523, 659, 784, 1047].forEach(function (f, i) { tone(totalDuration + i * 0.18, f, 0.2, 1); });
+
+    return ctx.startRendering().then(function (buf) { return bufferToWavBlob(buf); });
+  }
+
+  function prepareTrack() {
+    if (!segments.length) return Promise.resolve(false);
+    return renderWorkoutTrack().then(function (blob) {
+      if (trackUrl) { try { URL.revokeObjectURL(trackUrl); } catch (e) {} }
+      trackUrl = URL.createObjectURL(blob);
+      $workoutAudio.src = trackUrl;
+      try { $workoutAudio.load(); } catch (e) {}
+      trackDirty = false;
+      return true;
+    }).catch(function () { return false; });
+  }
+
   // ---------------- Formatting ----------------
   function fmtClock(totalSeconds) {
     totalSeconds = Math.max(0, Math.round(totalSeconds));
@@ -538,7 +618,10 @@
     if (wakeLock) { wakeLock.release().catch(function () {}); wakeLock = null; }
   }
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible" && state === STATE_RUNNING) requestWakeLock();
+    if (document.visibilityState === "visible" && state === STATE_RUNNING) {
+      requestWakeLock();
+      tick(); // resync the display to the audio playhead after the screen was off
+    }
   });
 
   // ---------------- Media session (lock screen / headset controls) ----------------
@@ -616,61 +699,56 @@
     return segments.reduce(function (sum, s) { return sum + s.duration; }, 0);
   }
 
-  // ---------------- Core loop ----------------
-  function tick() {
-    if (state !== STATE_RUNNING) return;
-    var now = Date.now();
-    var seg = segments[currentIndex];
-    var remainingMs = segmentEndTime - now;
-    var remainingSec = Math.ceil(remainingMs / 1000);
-
-    if (remainingMs <= 0) {
-      advanceSegment();
-      return;
-    }
-
-    $timeRemaining.textContent = fmtClock(remainingMs / 1000);
-
-    var totalElapsedSec = (now - workoutStartTime - pausedAccumMs) / 1000;
-    $totalTime.textContent = "Total: " + fmtClock(totalElapsedSec) + " / " + fmtClock(totalPlannedSeconds());
-
-    if (remainingSec <= 3 && remainingSec >= 1 && !beepedFlags[remainingSec]) {
-      beepedFlags[remainingSec] = true;
-      playCountdownTick();
-    }
-
-    updateMediaSession(seg.label + " — " + fmtClock(remainingMs / 1000));
+  // ---------------- Core loop (driven by the workout audio's playhead) ----------------
+  function elapsedSeconds() {
+    return ($workoutAudio && $workoutAudio.src) ? $workoutAudio.currentTime : 0;
   }
 
-  function advanceSegment() {
-    currentIndex++;
-    beepedFlags = {};
-    if (currentIndex >= segments.length) {
+  function segmentIndexAt(elapsed) {
+    for (var i = 0; i < segments.length; i++) {
+      if (elapsed < segments[i].endTime - 0.0001) return i;
+    }
+    return segments.length - 1;
+  }
+
+  function tick() {
+    if (state !== STATE_RUNNING) return;
+    var elapsed = elapsedSeconds();
+
+    if (elapsed >= totalDuration - 0.05) {
       finishWorkout();
       return;
     }
+
+    var idx = segmentIndexAt(elapsed);
+    if (idx !== currentIndex) {
+      currentIndex = idx;
+      renderActive();
+    }
+
     var seg = segments[currentIndex];
-    segmentEndTime = Date.now() + seg.duration * 1000;
-    playPhaseChange(seg.type);
-    renderActive();
-    tick();
+    var remaining = seg.endTime - elapsed;
+    $timeRemaining.textContent = fmtClock(remaining);
+    $totalTime.textContent = "Total: " + fmtClock(elapsed) + " / " + fmtClock(totalDuration);
+    updateMediaSession(seg.label + " — " + fmtClock(remaining));
   }
 
   function finishWorkout() {
+    if (state === STATE_DONE) return;
     state = STATE_DONE;
     stopTicking();
     releaseWakeLock();
-    playComplete();
-    var totalSec = Math.round((Date.now() - workoutStartTime - pausedAccumMs) / 1000);
+    // Do not pause the audio here — let its baked-in completion chime finish.
+    var totalSec = Math.round(totalDuration);
     pushHistory({ date: new Date().toISOString(), totalSeconds: totalSec, reps: settings.reps });
     updateHistoryNote();
+    currentIndex = -1;
     renderIdleOrDone("Workout complete!");
     document.getElementById("idle-sub").textContent = "Total time: " + fmtClock(totalSec) + " — saved.";
     $btnStart.textContent = "Start";
     $btnStart.classList.remove("hidden");
     $btnPause.classList.add("hidden");
     updateMediaSession("Workout complete");
-    stopKeepalive();
   }
 
   function startTicking() {
@@ -685,26 +763,27 @@
   function startWorkout() {
     ensureAudioCtx();
     applyAudioSession();
+
     if (state === STATE_DONE || state === STATE_IDLE) {
-      segments = buildSegments(settings);
       if (segments.length === 0) return;
-      currentIndex = 0;
-      workoutStartTime = Date.now();
-      pausedAccumMs = 0;
-      beepedFlags = {};
-      segmentEndTime = Date.now() + segments[0].duration * 1000;
-      playPhaseChange(segments[0].type);
+      currentIndex = -1;
+      var begin = function () {
+        try { $workoutAudio.currentTime = 0; } catch (e) {}
+        var p = $workoutAudio.play();
+        if (p && p.catch) p.catch(function () {});
+      };
+      // The track is pre-rendered on load and after any settings change, so
+      // this is normally synchronous (keeps the iOS play() user-gesture intact).
+      if (trackDirty || !trackUrl) { prepareTrack().then(begin); } else { begin(); }
     } else if (state === STATE_PAUSED) {
-      var pausedFor = Date.now() - pauseStartedAt;
-      pausedAccumMs += pausedFor;
-      segmentEndTime = Date.now() + remainingMsAtPause;
+      var pr = $workoutAudio.play();
+      if (pr && pr.catch) pr.catch(function () {});
     }
+
     state = STATE_RUNNING;
     startTicking();
     requestWakeLock();
-    startKeepalive();
     setupMediaSession();
-    renderActive();
     tick();
 
     $btnStart.classList.add("hidden");
@@ -715,8 +794,7 @@
   function pauseWorkout() {
     if (state !== STATE_RUNNING) return;
     state = STATE_PAUSED;
-    pauseStartedAt = Date.now();
-    remainingMsAtPause = segmentEndTime - Date.now();
+    try { $workoutAudio.pause(); } catch (e) {}
     stopTicking();
     releaseWakeLock();
     updateMediaSession("Paused");
@@ -733,16 +811,21 @@
   function resetWorkout() {
     stopTicking();
     releaseWakeLock();
-    stopKeepalive();
+    try { $workoutAudio.pause(); $workoutAudio.currentTime = 0; } catch (e) {}
     state = STATE_IDLE;
-    currentIndex = 0;
-    segments = buildSegments(settings);
+    currentIndex = -1;
     renderIdleOrDone();
     $btnStart.textContent = "Start";
     $btnStart.classList.remove("hidden");
     $btnPause.classList.add("hidden");
     updateMediaSession("Ready");
   }
+
+  // If the clip reaches its end while the screen is locked (tick frozen),
+  // finalize the workout as soon as playback ends.
+  $workoutAudio.addEventListener("ended", function () {
+    if (state === STATE_RUNNING) finishWorkout();
+  });
 
   $btnStart.addEventListener("click", startWorkout);
   $btnPause.addEventListener("click", pauseWorkout);
@@ -805,10 +888,9 @@
   });
 
   document.getElementById("settings-save").addEventListener("click", function () {
-    // Volume and silent-mode never change the interval plan, so they can be
-    // updated at any time — including mid-workout.
-    settings.volume = clampNum($setVolume.value, 0, 100, DEFAULTS.volume, true);
+    var prevVolume = settings.volume;
     settings.silentOverride = $setSilent.checked;
+    settings.volume = clampNum($setVolume.value, 0, 100, DEFAULTS.volume, true);
     if (state !== STATE_RUNNING) {
       settings.warmup = clampNum($setWarmup.value, 0, 30, DEFAULTS.warmup);
       settings.run = clampNum($setRun.value, 0.25, 30, DEFAULTS.run);
@@ -816,9 +898,16 @@
       settings.reps = clampNum($setReps.value, 1, 30, DEFAULTS.reps, true);
       settings.cooldown = clampNum($setCooldown.value, 0, 30, DEFAULTS.cooldown);
       segments = buildSegments(settings);
-      currentIndex = 0;
+      totalDuration = segments.length ? segments[segments.length - 1].endTime : 0;
+      currentIndex = -1;
       state = STATE_IDLE;
       renderIdleOrDone();
+      // The interval plan and/or beep volume changed — re-render the audio clip.
+      trackDirty = true;
+      prepareTrack();
+    } else if (settings.volume !== prevVolume) {
+      // Volume is baked into the clip; it will apply on the next start.
+      trackDirty = true;
     }
     saveSettings(settings);
     applyAudioSession();
@@ -865,6 +954,7 @@
   renderIdleOrDone();
   updateHistoryNote();
   setupMediaSession();
+  prepareTrack(); // render the workout clip up front so Start plays instantly
 })();
 </script>
 </body>
