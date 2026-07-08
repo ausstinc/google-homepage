@@ -636,6 +636,7 @@
   .cal-cell.today { border-color: var(--accent); border-width: 2px; }
   .cal-cell.done { background: var(--run); color: #0b0d10; font-weight: 800; border-color: var(--run); }
   .cal-cell.planned { border-color: var(--accent); border-style: dashed; }
+  .cal-cell.bball { border-color: var(--warmup); }
   .cal-cell.selected { outline: 2px solid var(--text); outline-offset: 1px; }
   .cal-cell .cal-tag { font-size: 0.52rem; font-weight: 800; margin-top: 1px; line-height: 1; }
   .cal-cell.planned .cal-tag { color: var(--accent); }
@@ -841,6 +842,7 @@
     <div id="cal-legend">
       <span><i class="legend-swatch" style="background:var(--run)"></i> Completed</span>
       <span><i class="legend-swatch" style="border:2px dashed var(--accent);background:transparent"></i> Planned</span>
+      <span>🏀 Basketball</span>
       <span><i class="legend-swatch" style="border:2px solid var(--accent);background:transparent"></i> Today</span>
     </div>
     <div id="cal-detail">Tap a day to see what you did or what&rsquo;s planned.</div>
@@ -891,7 +893,7 @@
   var PLAYER_DEFAULT = {
     xp: 0, workouts: 0, streak: 0, bestStreak: 0, lastDate: null,
     totalSeconds: 0, totalRunSeconds: 0,
-    badges: {}, questClaims: {}, programWeek: -1
+    badges: {}, questClaims: {}, programWeek: -1, bballXp: {}
   };
 
   function loadPlayer() {
@@ -900,6 +902,7 @@
       p = p ? Object.assign({}, PLAYER_DEFAULT, p) : Object.assign({}, PLAYER_DEFAULT);
       if (!p.badges) p.badges = {};
       if (!p.questClaims) p.questClaims = {};
+      if (!p.bballXp) p.bballXp = {};
       if (typeof p.programWeek !== "number") p.programWeek = -1;
       return p;
     } catch (e) { return Object.assign({}, PLAYER_DEFAULT); }
@@ -927,24 +930,72 @@
   }
 
   function todayStr() { var d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
-  function dayDiff(a, b) {
-    var pa = a.split("-").map(Number), pb = b.split("-").map(Number);
-    return Math.round((new Date(pb[0], pb[1] - 1, pb[2]) - new Date(pa[0], pa[1] - 1, pa[2])) / 86400000);
+
+  // ---------------- Activities (basketball / cross-training) ----------------
+  var ACTIVITIES_KEY = "rwActivities";
+  var BBALL_XP = 15;
+  function loadActivities() { try { return JSON.parse(localStorage.getItem(ACTIVITIES_KEY)) || {}; } catch (e) { return {}; } }
+  function saveActivities(a) { try { localStorage.setItem(ACTIVITIES_KEY, JSON.stringify(a)); } catch (e) {} }
+  function keyToDate(key) { var p = key.split("-").map(Number); var d = new Date(p[0], p[1] - 1, p[2]); d.setHours(0, 0, 0, 0); return d; }
+  function keyIsPastOrToday(key) { var t = new Date(); t.setHours(0, 0, 0, 0); return keyToDate(key).getTime() <= t.getTime(); }
+  function bballLoggedCount() {
+    var a = loadActivities(), n = 0;
+    Object.keys(a).forEach(function (k) { if (keyIsPastOrToday(k)) n++; });
+    return n;
+  }
+
+  // The set of "active days" = days with a completed run OR a logged basketball day (today or earlier).
+  function activeDaySet() {
+    var set = {};
+    loadHistory().forEach(function (h) { set[dateKey(new Date(h.date))] = true; });
+    var acts = loadActivities();
+    Object.keys(acts).forEach(function (k) { if (keyIsPastOrToday(k)) set[k] = true; });
+    return set;
+  }
+  function computeStreak() {
+    var set = activeDaySet();
+    var d = new Date(); d.setHours(0, 0, 0, 0);
+    if (!set[dateKey(d)]) { d.setDate(d.getDate() - 1); if (!set[dateKey(d)]) return 0; } // grace: today not yet done
+    var streak = 0;
+    while (set[dateKey(d)]) { streak++; d.setDate(d.getDate() - 1); }
+    return streak;
+  }
+  function computeBestStreak() {
+    var set = activeDaySet();
+    var times = Object.keys(set).map(function (k) { return keyToDate(k).getTime(); }).sort(function (a, b) { return a - b; });
+    var best = 0, run = 0, prev = null;
+    times.forEach(function (t) { run = (prev != null && t - prev === 86400000) ? run + 1 : 1; if (run > best) best = run; prev = t; });
+    return best;
+  }
+  function refreshStreak() {
+    player.streak = computeStreak();
+    var b = computeBestStreak();
+    if (b > (player.bestStreak || 0)) player.bestStreak = b;
+    savePlayer();
+  }
+
+  // Toggle a basketball day on/off. Awards/refunds XP for past-or-today games and keeps the streak in sync.
+  function toggleBasketball(key) {
+    var acts = loadActivities();
+    if (acts[key]) {
+      delete acts[key];
+      if (player.bballXp[key]) { delete player.bballXp[key]; player.xp = Math.max(0, player.xp - BBALL_XP); }
+    } else {
+      acts[key] = true;
+      if (keyIsPastOrToday(key) && !player.bballXp[key]) { player.bballXp[key] = true; player.xp += BBALL_XP; }
+    }
+    saveActivities(acts);
+    refreshStreak();
+    checkBadges();
+    updateLevelBadge();
   }
 
   // Award base XP + update streak/stats for a finished workout.
   // Returns the base info; quests/badges/program are layered on in finishWorkout.
   function awardWorkout(totalSec, runSec) {
-    var today = todayStr();
-    if (player.lastDate) {
-      var diff = dayDiff(player.lastDate, today);
-      if (diff === 1) player.streak += 1;
-      else if (diff !== 0) player.streak = 1;
-    } else {
-      player.streak = 1;
-    }
-    if (player.streak > player.bestStreak) player.bestStreak = player.streak;
-    player.lastDate = today;
+    // history already includes this workout when this is called
+    refreshStreak();
+    player.lastDate = todayStr();
 
     var streakMult = 1 + Math.min(player.streak - 1, 5) * 0.1; // up to 1.5x
     var xpGain = Math.max(1, Math.round((totalSec / 60 + (runSec / 60) * 2) * streakMult));
@@ -1020,7 +1071,9 @@
     { id: "level10", ico: "🥈", name: "Level 10", has: function (p) { return levelFromXp(p.xp) >= 10; } },
     { id: "graduate", ico: "🎓", name: "Program Done", has: function (p) { return !!p.gradFlag; } },
     { id: "earlybird", ico: "🌅", name: "Early Bird", has: function (p) { return !!p.earlyFlag; } },
-    { id: "nightowl", ico: "🌙", name: "Night Owl", has: function (p) { return !!p.nightFlag; } }
+    { id: "nightowl", ico: "🌙", name: "Night Owl", has: function (p) { return !!p.nightFlag; } },
+    { id: "baller", ico: "🏀", name: "First Game", has: function () { return bballLoggedCount() >= 1; } },
+    { id: "hooper", ico: "⛹️", name: "Hooper (10)", has: function () { return bballLoggedCount() >= 10; } }
   ];
   // Unlock any newly-earned badges; returns the list of newly unlocked badge objects.
   function checkBadges() {
@@ -1840,7 +1893,7 @@
   // ---------------- Workouts & character panels ----------------
   function openWorkouts() { renderWorkoutsList(); document.getElementById("workouts-overlay").classList.remove("hidden"); }
   function closeWorkouts() { document.getElementById("workouts-overlay").classList.add("hidden"); }
-  function openCharacter() { renderCharacter(); document.getElementById("character-overlay").classList.remove("hidden"); }
+  function openCharacter() { refreshStreak(); renderCharacter(); document.getElementById("character-overlay").classList.remove("hidden"); }
   function closeCharacter() { document.getElementById("character-overlay").classList.add("hidden"); }
 
   document.getElementById("btn-workouts").addEventListener("click", openWorkouts);
@@ -1902,11 +1955,13 @@
     if (!sched.length) return map;
     var idx = nextProgramIndex();
     if (idx >= PROGRAM.length) return map;
+    var acts = loadActivities();
     var d = new Date(); d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() + 1); // start tomorrow
     var guard = 0;
     while (idx < PROGRAM.length && guard < 400) {
-      if (sched.indexOf(d.getDay()) !== -1) {
+      // schedule a run on chosen weekdays, but skip days you've marked for basketball
+      if (sched.indexOf(d.getDay()) !== -1 && !acts[dateKey(d)]) {
         map[dateKey(d)] = { weekIndex: idx, name: PROGRAM[idx].name };
         idx++;
       }
@@ -1922,6 +1977,7 @@
   function renderCalendar() {
     var histMap = historyByDay();
     var projMap = buildProjection();
+    var acts = loadActivities();
     var today = new Date(); var todayKey = dateKey(today);
 
     document.getElementById("cal-title").textContent = MONTHS[calView.m] + " " + calView.y;
@@ -1941,7 +1997,8 @@
       var cell = document.createElement("div");
       cell.className = "cal-cell";
       var tag = "";
-      if (histMap[key]) { cell.classList.add("done"); tag = "✓"; }
+      if (histMap[key]) { cell.classList.add("done"); tag = "✓"; if (acts[key]) tag += "🏀"; }
+      else if (acts[key]) { cell.classList.add("bball"); tag = "🏀"; }
       else if (projMap[key]) { cell.classList.add("planned"); tag = "W" + (projMap[key].weekIndex + 1); }
       if (key === todayKey) cell.classList.add("today");
       if (key === calSelectedKey) cell.classList.add("selected");
@@ -1955,21 +2012,32 @@
   function showDayDetail(key, histMap, projMap) {
     histMap = histMap || historyByDay();
     projMap = projMap || buildProjection();
+    var acts = loadActivities();
     var parts = key.split("-").map(Number);
     var d = new Date(parts[0], parts[1] - 1, parts[2]);
     var nice = DOW[d.getDay()] + ", " + MONTHS[d.getMonth()] + " " + d.getDate();
-    var html = '<div class="cd-title">' + nice + '</div>';
+    var lines = [];
     if (histMap[key]) {
       histMap[key].forEach(function (h) {
         var detail = h.run != null ? " · " + h.reps + "×(" + fmtNum(h.run) + "/" + fmtNum(h.walk) + " min)" : "";
-        html += '✅ Completed — ' + fmtClock(h.totalSeconds) + detail + '<br>';
+        lines.push('✅ Completed run — ' + fmtClock(h.totalSeconds) + detail);
       });
-    } else if (projMap[key]) {
-      html += '📋 Planned: ' + projMap[key].name;
-    } else {
-      html += '<span style="color:var(--text-dim)">Rest day — no workout.</span>';
     }
-    document.getElementById("cal-detail").innerHTML = html;
+    if (acts[key]) lines.push('🏀 Basketball' + (keyIsPastOrToday(key) ? '' : ' (planned)'));
+    if (!histMap[key] && !acts[key]) {
+      if (projMap[key]) lines.push('📋 Planned run: ' + projMap[key].name);
+      else lines.push('<span style="color:var(--text-dim)">Rest day — nothing logged.</span>');
+    }
+    var el = document.getElementById("cal-detail");
+    el.innerHTML = '<div class="cd-title">' + nice + '</div>' + lines.join('<br>');
+
+    var btn = document.createElement("button");
+    btn.className = "test-btn";
+    btn.style.marginTop = "10px";
+    btn.style.width = "100%";
+    btn.textContent = acts[key] ? "🏀 Remove basketball" : "🏀 Mark basketball";
+    btn.addEventListener("click", function () { toggleBasketball(key); renderCalendar(); });
+    el.appendChild(btn);
   }
 
   function renderDayPicker() {
@@ -2016,7 +2084,7 @@
   });
 
   // ---------------- Backup & restore ----------------
-  var BACKUP_KEYS = ["rwTimerSettings", "rwTimerHistory", "rwPlayer", "rwSavedWorkouts", "rwSchedule", "rwTimerTheme"];
+  var BACKUP_KEYS = ["rwTimerSettings", "rwTimerHistory", "rwPlayer", "rwSavedWorkouts", "rwSchedule", "rwTimerTheme", "rwActivities"];
 
   function makeBackup() {
     var data = {};
@@ -2053,6 +2121,7 @@
     prepareTrack();
     var th = null; try { th = localStorage.getItem("rwTimerTheme"); } catch (e) {}
     if (th) applyTheme(th);
+    refreshStreak();
     renderIdleOrDone();
     updateLevelBadge();
     $btnStart.textContent = "Start";
@@ -2129,6 +2198,7 @@
   });
 
   // ---------------- Init ----------------
+  refreshStreak(); // keep the streak current, counting basketball days too
   renderIdleOrDone();
   updateLevelBadge();
   setupMediaSession();
