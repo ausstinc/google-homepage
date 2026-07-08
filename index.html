@@ -893,7 +893,7 @@
   var PLAYER_DEFAULT = {
     xp: 0, workouts: 0, streak: 0, bestStreak: 0, lastDate: null,
     totalSeconds: 0, totalRunSeconds: 0,
-    badges: {}, questClaims: {}, programWeek: -1, bballXp: {}
+    badges: {}, questClaims: {}, programWeek: -1, programWeekStartKey: null, bballXp: {}
   };
 
   function loadPlayer() {
@@ -904,6 +904,11 @@
       if (!p.questClaims) p.questClaims = {};
       if (!p.bballXp) p.bballXp = {};
       if (typeof p.programWeek !== "number") p.programWeek = -1;
+      // Migrate players saved before program weeks were anchored to calendar
+      // weeks: anchor to "now" so it stops advancing on every single session.
+      // (If you were bumped ahead incorrectly, reselect the right week from
+      // Choose Workout — that also resets this anchor properly.)
+      if (p.programWeek >= 0 && !p.programWeekStartKey) p.programWeekStartKey = weekKey();
       return p;
     } catch (e) { return Object.assign({}, PLAYER_DEFAULT); }
   }
@@ -1094,19 +1099,32 @@
     }
     return -1;
   }
-  // If the finished workout was the current program week, advance to the next one.
+  // Whole weeks between two Monday-bucket keys (as produced by weekKey()).
+  function weeksBetween(fromKey, toKey) {
+    return Math.round((keyToDate(toKey).getTime() - keyToDate(fromKey).getTime()) / (7 * 86400000));
+  }
+  // A program week repeats across all of that week's run-days — it only
+  // advances once a NEW calendar week begins, not after every single session.
   function advanceProgram() {
     if (player.programWeek < 0 || player.programWeek >= PROGRAM.length) return null;
     if (!workoutMatches(PROGRAM[player.programWeek])) return null; // they changed the intervals
+
+    var thisWeek = weekKey();
+    if (!player.programWeekStartKey) { player.programWeekStartKey = thisWeek; savePlayer(); return null; }
+    var elapsed = weeksBetween(player.programWeekStartKey, thisWeek);
+    if (elapsed <= 0) return null; // still the same calendar week — repeat it, don't advance
+
     var doneIdx = player.programWeek;
-    if (doneIdx >= PROGRAM.length - 1) {
+    var nextIdx = doneIdx + elapsed;
+    if (nextIdx >= PROGRAM.length) {
       player.programWeek = -1;
+      player.programWeekStartKey = null;
       player.gradFlag = true; // unlocks the graduate badge
       savePlayer();
       return { graduated: true };
     }
-    var nextIdx = doneIdx + 1;
     player.programWeek = nextIdx;
+    player.programWeekStartKey = thisWeek;
     savePlayer();
     var next = PROGRAM[nextIdx];
     settings.warmup = next.warmup; settings.run = next.run; settings.walk = next.walk;
@@ -1228,6 +1246,9 @@
     settings.reps = cfg.reps; settings.cooldown = cfg.cooldown;
     saveSettings(settings);
     player.programWeek = programIndexOf(cfg); // -1 if this is a custom/saved workout
+    // Anchor "this program week" to the current calendar week, so it repeats
+    // across all your run-days this week before advancing to the next one.
+    player.programWeekStartKey = player.programWeek >= 0 ? weekKey() : null;
     savePlayer();
     segments = buildSegments(settings);
     totalDuration = segments.length ? segments[segments.length - 1].endTime : 0;
@@ -1857,7 +1878,11 @@
       totalDuration = segments.length ? segments[segments.length - 1].endTime : 0;
       currentIndex = -1;
       state = STATE_IDLE;
-      player.programWeek = programIndexOf(settings); // keep program tracking in sync with manual edits
+      var newProgIdx = programIndexOf(settings); // keep program tracking in sync with manual edits
+      if (newProgIdx !== player.programWeek) {
+        player.programWeek = newProgIdx;
+        player.programWeekStartKey = newProgIdx >= 0 ? weekKey() : null;
+      }
       savePlayer();
       renderIdleOrDone();
       // The interval plan and/or beep volume changed — re-render the audio clip.
@@ -1949,6 +1974,9 @@
   }
 
   // Project the remaining program weeks forward onto the chosen run-days.
+  // Each program week repeats across every run-day in its calendar week —
+  // the index only advances when a projected day crosses into a new week,
+  // matching how advanceProgram() actually progresses after a real run.
   function buildProjection() {
     var sched = loadSchedule();
     var map = {};
@@ -1957,13 +1985,17 @@
     if (idx >= PROGRAM.length) return map;
     var acts = loadActivities();
     var d = new Date(); d.setHours(0, 0, 0, 0);
+    var curWeekKey = player.programWeekStartKey || weekKey();
     d.setDate(d.getDate() + 1); // start tomorrow
     var guard = 0;
     while (idx < PROGRAM.length && guard < 400) {
+      var dKey = dateKey(d);
+      var dWeekKey = weekKey(dKey);
+      if (dWeekKey !== curWeekKey) { idx++; curWeekKey = dWeekKey; }
+      if (idx >= PROGRAM.length) break;
       // schedule a run on chosen weekdays, but skip days you've marked for basketball
-      if (sched.indexOf(d.getDay()) !== -1 && !acts[dateKey(d)]) {
-        map[dateKey(d)] = { weekIndex: idx, name: PROGRAM[idx].name };
-        idx++;
+      if (sched.indexOf(d.getDay()) !== -1 && !acts[dKey]) {
+        map[dKey] = { weekIndex: idx, name: PROGRAM[idx].name };
       }
       d.setDate(d.getDate() + 1);
       guard++;
