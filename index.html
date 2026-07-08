@@ -286,6 +286,33 @@
   }
   .test-btn:active { transform: scale(0.96); }
 
+  /* Backup & restore */
+  .backup-head {
+    margin: 18px 0 4px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+  .backup-row { display: flex; gap: 8px; margin-top: 8px; }
+  .backup-row .test-btn { flex: 1; }
+  #backup-paste {
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.85rem;
+    box-sizing: border-box;
+    resize: vertical;
+  }
+  #backup-status { min-height: 1.1em; margin-top: 8px; }
+  #backup-status.ok { color: var(--run); font-weight: 700; }
+  #backup-status.err { color: var(--warmup); font-weight: 700; }
+
   /* ---------- Progress bars ---------- */
   #progress-block {
     width: 100%;
@@ -717,6 +744,22 @@
       <label>Test the alert sound</label>
       <button type="button" id="btn-test-sound" class="test-btn">Test sound</button>
     </div>
+
+    <div class="backup-head">Backup &amp; restore</div>
+    <div class="setting-hint">
+      Your progress lives only on this device. Export a backup before switching phones or clearing Safari, then restore it anywhere.
+    </div>
+    <div class="backup-row">
+      <button type="button" class="test-btn" id="backup-copy">Copy backup</button>
+      <button type="button" class="test-btn" id="backup-download">Download file</button>
+    </div>
+    <textarea id="backup-paste" rows="2" placeholder="…or paste a backup here, then tap Restore"></textarea>
+    <div class="backup-row">
+      <label class="test-btn" id="backup-file-label" for="backup-file" style="text-align:center">Choose file…</label>
+      <input type="file" id="backup-file" accept="application/json,.json" style="display:none">
+      <button type="button" class="test-btn" id="backup-restore">Restore</button>
+    </div>
+    <div id="backup-status" class="setting-hint"></div>
 
     <div id="settings-actions">
       <button id="settings-cancel">Cancel</button>
@@ -1735,6 +1778,8 @@
     [$setWarmup, $setRun, $setWalk, $setReps, $setCooldown].forEach(function (el) {
       el.disabled = locked;
     });
+    var bs = document.getElementById("backup-status"); if (bs) { bs.textContent = ""; bs.className = "setting-hint"; }
+    var bp = document.getElementById("backup-paste"); if (bp) bp.value = "";
     $settingsOverlay.classList.remove("hidden");
   }
   function closeSettings() { $settingsOverlay.classList.add("hidden"); }
@@ -1968,6 +2013,111 @@
   });
   document.getElementById("cal-next").addEventListener("click", function () {
     calView.m++; if (calView.m > 11) { calView.m = 0; calView.y++; } renderCalendar();
+  });
+
+  // ---------------- Backup & restore ----------------
+  var BACKUP_KEYS = ["rwTimerSettings", "rwTimerHistory", "rwPlayer", "rwSavedWorkouts", "rwSchedule", "rwTimerTheme"];
+
+  function makeBackup() {
+    var data = {};
+    BACKUP_KEYS.forEach(function (k) {
+      var v = null; try { v = localStorage.getItem(k); } catch (e) {}
+      if (v != null) data[k] = v; // store raw strings verbatim
+    });
+    return { app: "run-walk-timer", version: 1, exportedAt: new Date().toISOString(), data: data };
+  }
+  function backupText() { return JSON.stringify(makeBackup()); }
+
+  function importBackup(text) {
+    var obj;
+    try { obj = JSON.parse(text); } catch (e) { return "Couldn't read that backup (invalid text)."; }
+    if (!obj || obj.app !== "run-walk-timer" || !obj.data) return "That doesn't look like a Run/Walk backup.";
+    try {
+      BACKUP_KEYS.forEach(function (k) { if (obj.data[k] != null) localStorage.setItem(k, obj.data[k]); });
+    } catch (e) { return "Restore failed while saving to this device."; }
+    return null; // success
+  }
+
+  // Reload all in-memory state from localStorage (used after a restore).
+  function reloadAllFromStorage() {
+    settings = loadSettings();
+    player = loadPlayer();
+    segments = buildSegments(settings);
+    totalDuration = segments.length ? segments[segments.length - 1].endTime : 0;
+    currentIndex = -1;
+    state = STATE_IDLE;
+    trackDirty = true;
+    stopTicking();
+    releaseWakeLock();
+    try { $workoutAudio.pause(); $workoutAudio.currentTime = 0; } catch (e) {}
+    prepareTrack();
+    var th = null; try { th = localStorage.getItem("rwTimerTheme"); } catch (e) {}
+    if (th) applyTheme(th);
+    renderIdleOrDone();
+    updateLevelBadge();
+    $btnStart.textContent = "Start";
+    $btnStart.classList.remove("hidden");
+    $btnPause.classList.add("hidden");
+  }
+
+  function backupStatus(msg, kind) {
+    var el = document.getElementById("backup-status");
+    el.textContent = msg || "";
+    el.className = "setting-hint" + (kind ? " " + kind : "");
+  }
+
+  document.getElementById("backup-copy").addEventListener("click", function () {
+    var text = backupText();
+    function fallback() {
+      var ta = document.getElementById("backup-paste");
+      ta.value = text; ta.focus(); ta.select();
+      backupStatus("Backup shown below — press and hold to Copy it somewhere safe.", "ok");
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        backupStatus("Backup copied to clipboard — paste it somewhere safe.", "ok");
+      }).catch(fallback);
+    } else { fallback(); }
+  });
+
+  document.getElementById("backup-download").addEventListener("click", function () {
+    try {
+      var blob = new Blob([backupText()], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = "run-walk-backup-" + todayStr() + ".json";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      backupStatus("Backup file saved.", "ok");
+    } catch (e) { backupStatus("Couldn't create the file on this browser.", "err"); }
+  });
+
+  document.getElementById("backup-file").addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      document.getElementById("backup-paste").value = String(reader.result || "");
+      backupStatus("File loaded — tap Restore to apply it.", "ok");
+    };
+    reader.onerror = function () { backupStatus("Couldn't read that file.", "err"); };
+    reader.readAsText(file);
+    e.target.value = ""; // allow re-selecting the same file later
+  });
+
+  document.getElementById("backup-restore").addEventListener("click", function () {
+    var text = (document.getElementById("backup-paste").value || "").trim();
+    if (!text) { backupStatus("Paste a backup (or choose a file) first.", "err"); return; }
+    if (state === STATE_RUNNING || state === STATE_PAUSED) {
+      if (!confirm("Restore will replace your current progress and stop the running workout. Continue?")) return;
+    } else if (!confirm("Restore will replace all progress currently on this device. Continue?")) {
+      return;
+    }
+    var err = importBackup(text);
+    if (err) { backupStatus(err, "err"); return; }
+    reloadAllFromStorage();
+    document.getElementById("backup-paste").value = "";
+    backupStatus("Restored ✓ — your progress is back.", "ok");
   });
 
   // ---------------- Prevent accidental navigation while running ----------------
