@@ -904,11 +904,11 @@
       if (!p.questClaims) p.questClaims = {};
       if (!p.bballXp) p.bballXp = {};
       if (typeof p.programWeek !== "number") p.programWeek = -1;
-      // Migrate players saved before program weeks were anchored to calendar
-      // weeks: anchor to "now" so it stops advancing on every single session.
-      // (If you were bumped ahead incorrectly, reselect the right week from
-      // Choose Workout — that also resets this anchor properly.)
-      if (p.programWeek >= 0 && !p.programWeekStartKey) p.programWeekStartKey = weekKey();
+      // Migrate players saved before program weeks were anchored to a rolling
+      // 7-day window: anchor to "today" so it stops advancing on every single
+      // session. (If you were bumped ahead incorrectly, reselect the right
+      // week from Choose Workout — that also resets this anchor properly.)
+      if (p.programWeek >= 0 && !p.programWeekStartKey) p.programWeekStartKey = todayStr();
       return p;
     } catch (e) { return Object.assign({}, PLAYER_DEFAULT); }
   }
@@ -1099,20 +1099,22 @@
     }
     return -1;
   }
-  // Whole weeks between two Monday-bucket keys (as produced by weekKey()).
-  function weeksBetween(fromKey, toKey) {
-    return Math.round((keyToDate(toKey).getTime() - keyToDate(fromKey).getTime()) / (7 * 86400000));
+  // Whole days between two date keys (as produced by todayStr()/dateKey()).
+  function daysBetween(fromKey, toKey) {
+    return Math.round((keyToDate(toKey).getTime() - keyToDate(fromKey).getTime()) / 86400000);
   }
-  // A program week repeats across all of that week's run-days — it only
-  // advances once a NEW calendar week begins, not after every single session.
+  // A program week repeats for a rolling 7 days from whenever it started —
+  // not a fixed Monday–Sunday calendar week, so it doesn't matter which day
+  // of the week you began. It only advances once that 7-day window has
+  // actually elapsed, not after every single session.
   function advanceProgram() {
     if (player.programWeek < 0 || player.programWeek >= PROGRAM.length) return null;
     if (!workoutMatches(PROGRAM[player.programWeek])) return null; // they changed the intervals
 
-    var thisWeek = weekKey();
-    if (!player.programWeekStartKey) { player.programWeekStartKey = thisWeek; savePlayer(); return null; }
-    var elapsed = weeksBetween(player.programWeekStartKey, thisWeek);
-    if (elapsed <= 0) return null; // still the same calendar week — repeat it, don't advance
+    var today = todayStr();
+    if (!player.programWeekStartKey) { player.programWeekStartKey = today; savePlayer(); return null; }
+    var elapsed = Math.floor(daysBetween(player.programWeekStartKey, today) / 7);
+    if (elapsed <= 0) return null; // still within this 7-day window — repeat it, don't advance
 
     var doneIdx = player.programWeek;
     var nextIdx = doneIdx + elapsed;
@@ -1124,7 +1126,7 @@
       return { graduated: true };
     }
     player.programWeek = nextIdx;
-    player.programWeekStartKey = thisWeek;
+    player.programWeekStartKey = today; // the new 7-day window starts today
     savePlayer();
     var next = PROGRAM[nextIdx];
     settings.warmup = next.warmup; settings.run = next.run; settings.walk = next.walk;
@@ -1246,9 +1248,9 @@
     settings.reps = cfg.reps; settings.cooldown = cfg.cooldown;
     saveSettings(settings);
     player.programWeek = programIndexOf(cfg); // -1 if this is a custom/saved workout
-    // Anchor "this program week" to the current calendar week, so it repeats
-    // across all your run-days this week before advancing to the next one.
-    player.programWeekStartKey = player.programWeek >= 0 ? weekKey() : null;
+    // Anchor "this program week" to today — it repeats for a rolling 7 days
+    // from here across your run-days before advancing to the next one.
+    player.programWeekStartKey = player.programWeek >= 0 ? todayStr() : null;
     savePlayer();
     segments = buildSegments(settings);
     totalDuration = segments.length ? segments[segments.length - 1].endTime : 0;
@@ -1881,7 +1883,7 @@
       var newProgIdx = programIndexOf(settings); // keep program tracking in sync with manual edits
       if (newProgIdx !== player.programWeek) {
         player.programWeek = newProgIdx;
-        player.programWeekStartKey = newProgIdx >= 0 ? weekKey() : null;
+        player.programWeekStartKey = newProgIdx >= 0 ? todayStr() : null;
       }
       savePlayer();
       renderIdleOrDone();
@@ -1974,25 +1976,25 @@
   }
 
   // Project the remaining program weeks forward onto the chosen run-days.
-  // Each program week repeats across every run-day in its calendar week —
-  // the index only advances when a projected day crosses into a new week,
-  // matching how advanceProgram() actually progresses after a real run.
+  // Each program week repeats for a rolling 7 days from its own start date
+  // (not a fixed Monday–Sunday calendar week) — matching how advanceProgram()
+  // actually progresses after a real run, so the calendar and the real
+  // advance logic never disagree.
   function buildProjection() {
     var sched = loadSchedule();
     var map = {};
     if (!sched.length) return map;
-    var idx = nextProgramIndex();
-    if (idx >= PROGRAM.length) return map;
+    var baseIdx = nextProgramIndex();
+    if (baseIdx >= PROGRAM.length) return map;
     var acts = loadActivities();
+    var anchorKey = player.programWeekStartKey || todayStr();
     var d = new Date(); d.setHours(0, 0, 0, 0);
-    var curWeekKey = player.programWeekStartKey || weekKey();
     d.setDate(d.getDate() + 1); // start tomorrow
     var guard = 0;
-    while (idx < PROGRAM.length && guard < 400) {
+    while (guard < 400) {
       var dKey = dateKey(d);
-      var dWeekKey = weekKey(dKey);
-      if (dWeekKey !== curWeekKey) { idx++; curWeekKey = dWeekKey; }
-      if (idx >= PROGRAM.length) break;
+      var idx = baseIdx + Math.floor(daysBetween(anchorKey, dKey) / 7);
+      if (idx >= PROGRAM.length) break; // program finishes before this date — nothing further to project
       // schedule a run on chosen weekdays, but skip days you've marked for basketball
       if (sched.indexOf(d.getDay()) !== -1 && !acts[dKey]) {
         map[dKey] = { weekIndex: idx, name: PROGRAM[idx].name };
