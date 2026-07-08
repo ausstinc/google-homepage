@@ -285,13 +285,277 @@
     cursor: pointer;
   }
   .test-btn:active { transform: scale(0.96); }
+
+  /* ---------- Progress bars ---------- */
+  #progress-block {
+    width: 100%;
+    max-width: 520px;
+    margin: 18px auto 4px;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.85;
+    margin-bottom: 4px;
+  }
+  .progress-track {
+    position: relative;
+    width: 100%;
+    background: rgba(0,0,0,0.28);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  #stage.has-color .progress-track { background: rgba(0,0,0,0.22); }
+  #interval-track { height: 10px; }
+  #overall-track { height: 16px; margin-bottom: 14px; overflow: visible; }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: rgba(255,255,255,0.92);
+    border-radius: 999px;
+    transition: width 0.25s linear;
+  }
+  #overall-fill { background: rgba(255,255,255,0.85); }
+  .turn-marker {
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 26px;
+    width: 3px;
+    background: #111;
+    border-radius: 2px;
+  }
+  .turn-flag {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    color: #111;
+    text-transform: uppercase;
+  }
+  #overall-track.past-turn .turn-marker,
+  #overall-track.past-turn .turn-flag { opacity: 0.35; }
+
+  /* ---------- Secondary (idle) action buttons ---------- */
+  #idle-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 22px;
+    flex-wrap: wrap;
+  }
+  .sec-btn {
+    background: var(--bg-panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 18px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .sec-btn:active { transform: scale(0.97); }
+
+  /* ---------- Level badge in top bar ---------- */
+  #level-badge {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #level-badge:active { background: rgba(128,128,128,0.18); }
+  #level-badge .xp-mini {
+    width: 46px;
+    height: 6px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  #level-badge .xp-mini > span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 999px;
+  }
+
+  /* ---------- Reward line on completion ---------- */
+  #reward-line {
+    margin-top: 14px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1.5;
+  }
+  #reward-line .xp-pop { color: var(--accent); }
+  #reward-line .levelup {
+    display: inline-block;
+    color: var(--warmup);
+    animation: pop 0.5s ease;
+  }
+  @keyframes pop {
+    0% { transform: scale(0.6); opacity: 0; }
+    60% { transform: scale(1.15); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ---------- Generic bottom-sheet overlays (workouts + character) ---------- */
+  .sheet-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 50;
+  }
+  .sheet {
+    background: var(--bg-panel);
+    width: 100%;
+    max-width: 480px;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 22px calc(24px + env(safe-area-inset-bottom));
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+  .sheet h2 { margin: 0 0 6px; font-size: 1.3rem; }
+  .sheet h3 {
+    margin: 20px 0 8px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+  .sheet-close {
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    margin-top: 18px;
+  }
+
+  /* Workout list items */
+  .wk-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .wk-item:active { transform: scale(0.99); }
+  .wk-item.current { border-color: var(--accent); }
+  .wk-item .wk-main { flex: 1; }
+  .wk-item .wk-name { font-weight: 700; font-size: 1rem; }
+  .wk-item .wk-detail { font-size: 0.8rem; color: var(--text-dim); margin-top: 2px; }
+  .wk-item .wk-del {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.3rem;
+    padding: 4px 8px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .wk-badge {
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  #wk-save-row { display: flex; gap: 8px; margin-top: 6px; }
+  #wk-save-name {
+    flex: 1;
+    padding: 12px;
+    font-size: 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+  }
+  #wk-save-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0 18px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .empty-note { font-size: 0.85rem; color: var(--text-dim); padding: 4px 2px 8px; }
+
+  /* Character / profile */
+  #char-header { text-align: center; padding: 6px 0 2px; }
+  #char-level { font-size: 3rem; font-weight: 800; line-height: 1; }
+  #char-rank { font-size: 1.1rem; font-weight: 700; color: var(--accent); margin-top: 2px; }
+  #char-xp-track {
+    height: 14px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 14px 0 4px;
+  }
+  #char-xp-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 999px; transition: width 0.4s ease; }
+  #char-xp-text { font-size: 0.8rem; color: var(--text-dim); text-align: center; }
+  .attr-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+  }
+  .attr-row .attr-name { width: 84px; font-size: 0.85rem; font-weight: 700; }
+  .attr-row .attr-track { flex: 1; height: 10px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .attr-row .attr-track > span { display: block; height: 100%; border-radius: 999px; }
+  .attr-row .attr-val { width: 30px; text-align: right; font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #char-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .stat-tile {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-tile .stat-num { font-size: 1.4rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .stat-tile .stat-lbl { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px; }
 </style>
 </head>
 <body>
 
 <div id="topbar">
   <button class="icon-btn" id="btn-settings" aria-label="Settings">&#9881;&#65039;</button>
-  <div id="history-note"></div>
+  <button id="level-badge" aria-label="Character">&#9876;&#65039; <span id="level-badge-text">Lv 1</span><span class="xp-mini"><span id="level-badge-xp"></span></span></button>
   <button class="icon-btn" id="btn-theme" aria-label="Toggle dark mode">&#127769;</button>
 </div>
 
@@ -299,6 +563,11 @@
   <div id="idle-view">
     <div id="idle-message">Ready to run</div>
     <div id="idle-sub">Warm-up walk &rarr; 8x (1 min run / 2 min walk) &rarr; cool-down walk</div>
+    <div id="reward-line" class="hidden"></div>
+    <div id="idle-actions">
+      <button class="sec-btn" id="btn-workouts">&#128203; Choose workout</button>
+      <button class="sec-btn" id="btn-character">&#9876;&#65039; Character</button>
+    </div>
   </div>
 
   <div id="active-view" class="hidden">
@@ -306,6 +575,18 @@
     <div id="time-remaining">0:00</div>
     <div id="rep-counter">Rep 1/8</div>
     <div id="next-phase">Next: <b>Walk</b></div>
+
+    <div id="progress-block">
+      <div class="progress-label"><span>This interval</span><span id="interval-pct"></span></div>
+      <div class="progress-track" id="interval-track"><div class="progress-fill" id="interval-fill"></div></div>
+      <div class="progress-label"><span>Whole workout</span><span id="overall-pct"></span></div>
+      <div class="progress-track" id="overall-track">
+        <div class="progress-fill" id="overall-fill"></div>
+        <div class="turn-marker"></div>
+        <div class="turn-flag">&#8635; turn around</div>
+      </div>
+    </div>
+
     <div id="total-time">Total: 0:00</div>
   </div>
 </div>
@@ -365,6 +646,60 @@
   </div>
 </div>
 
+<div id="workouts-overlay" class="sheet-overlay hidden">
+  <div class="sheet">
+    <h2>Choose a workout</h2>
+    <h3>Walk-to-run progression</h3>
+    <div id="program-list"></div>
+    <h3>My saved workouts</h3>
+    <div id="saved-list"></div>
+    <div id="wk-save-row">
+      <input id="wk-save-name" type="text" placeholder="Name this workout&hellip;" maxlength="24">
+      <button id="wk-save-btn">Save</button>
+    </div>
+    <div class="empty-note">Saves your current interval settings so you can pick it again later.</div>
+    <button class="sheet-close" id="workouts-close">Done</button>
+  </div>
+</div>
+
+<div id="character-overlay" class="sheet-overlay hidden">
+  <div class="sheet">
+    <h2>Your Runner</h2>
+    <div id="char-header">
+      <div id="char-level">Lv 1</div>
+      <div id="char-rank">Novice Jogger</div>
+    </div>
+    <div id="char-xp-track"><div id="char-xp-fill"></div></div>
+    <div id="char-xp-text"></div>
+
+    <h3>Attributes</h3>
+    <div class="attr-row">
+      <span class="attr-name">Stamina</span>
+      <span class="attr-track"><span id="attr-stamina" style="background:var(--run)"></span></span>
+      <span class="attr-val" id="attr-stamina-val">0</span>
+    </div>
+    <div class="attr-row">
+      <span class="attr-name">Speed</span>
+      <span class="attr-track"><span id="attr-speed" style="background:var(--walk)"></span></span>
+      <span class="attr-val" id="attr-speed-val">0</span>
+    </div>
+    <div class="attr-row">
+      <span class="attr-name">Grit</span>
+      <span class="attr-track"><span id="attr-grit" style="background:var(--warmup)"></span></span>
+      <span class="attr-val" id="attr-grit-val">0</span>
+    </div>
+
+    <h3>Stats</h3>
+    <div id="char-stats">
+      <div class="stat-tile"><div class="stat-num" id="stat-workouts">0</div><div class="stat-lbl">Workouts</div></div>
+      <div class="stat-tile"><div class="stat-num" id="stat-streak">0</div><div class="stat-lbl">Day streak</div></div>
+      <div class="stat-tile"><div class="stat-num" id="stat-best-streak">0</div><div class="stat-lbl">Best streak</div></div>
+      <div class="stat-tile"><div class="stat-num" id="stat-total-time">0m</div><div class="stat-lbl">Total time</div></div>
+    </div>
+    <button class="sheet-close" id="character-close">Close</button>
+  </div>
+</div>
+
 <audio id="keepalive" loop preload="auto" src="data:audio/wav;base64,UklGRtQEAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YbAEAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIA=">
 
 <audio id="workout-audio" preload="auto"></audio>
@@ -400,6 +735,205 @@
   }
 
   var settings = loadSettings();
+
+  // ---------------- Player progression (RPG) ----------------
+  var PLAYER_KEY = "rwPlayer";
+  var PLAYER_DEFAULT = { xp: 0, workouts: 0, streak: 0, bestStreak: 0, lastDate: null, totalSeconds: 0, totalRunSeconds: 0 };
+
+  function loadPlayer() {
+    try {
+      var p = JSON.parse(localStorage.getItem(PLAYER_KEY));
+      return p ? Object.assign({}, PLAYER_DEFAULT, p) : Object.assign({}, PLAYER_DEFAULT);
+    } catch (e) { return Object.assign({}, PLAYER_DEFAULT); }
+  }
+  function savePlayer() { try { localStorage.setItem(PLAYER_KEY, JSON.stringify(player)); } catch (e) {} }
+  var player = loadPlayer();
+
+  // Cumulative XP required to REACH a level: 0, 100, 300, 600, 1000, ...
+  function xpToReach(level) { return 100 * (level - 1) * level / 2; }
+  function levelFromXp(xp) { var L = 1; while (xpToReach(L + 1) <= xp) L++; return L; }
+
+  var RANKS = [
+    { min: 1, title: "Novice Jogger" },
+    { min: 3, title: "Pace Cadet" },
+    { min: 5, title: "Trail Runner" },
+    { min: 7, title: "Stride Knight" },
+    { min: 10, title: "Tempo Warrior" },
+    { min: 14, title: "Marathon Mage" },
+    { min: 19, title: "Legendary Strider" }
+  ];
+  function rankFor(level) {
+    var t = RANKS[0].title;
+    for (var i = 0; i < RANKS.length; i++) if (level >= RANKS[i].min) t = RANKS[i].title;
+    return t;
+  }
+
+  function todayStr() { var d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
+  function dayDiff(a, b) {
+    var pa = a.split("-").map(Number), pb = b.split("-").map(Number);
+    return Math.round((new Date(pb[0], pb[1] - 1, pb[2]) - new Date(pa[0], pa[1] - 1, pa[2])) / 86400000);
+  }
+
+  // Award XP + update streak/stats for a finished workout; returns a summary for the UI.
+  function awardWorkout(totalSec, runSec) {
+    var today = todayStr();
+    if (player.lastDate) {
+      var diff = dayDiff(player.lastDate, today);
+      if (diff === 1) player.streak += 1;
+      else if (diff !== 0) player.streak = 1;
+    } else {
+      player.streak = 1;
+    }
+    if (player.streak > player.bestStreak) player.bestStreak = player.streak;
+    player.lastDate = today;
+
+    var streakMult = 1 + Math.min(player.streak - 1, 5) * 0.1; // up to 1.5x
+    var xpGain = Math.max(1, Math.round((totalSec / 60 + (runSec / 60) * 2) * streakMult));
+
+    var before = levelFromXp(player.xp);
+    player.xp += xpGain;
+    player.workouts += 1;
+    player.totalSeconds += Math.round(totalSec);
+    player.totalRunSeconds += Math.round(runSec);
+    var after = levelFromXp(player.xp);
+    savePlayer();
+    updateLevelBadge();
+    return { xpGain: xpGain, leveledUp: after > before, level: after, rank: rankFor(after), streak: player.streak };
+  }
+
+  function attributes() {
+    return {
+      stamina: Math.floor(player.totalSeconds / 600), // +1 per 10 min total
+      speed: Math.floor(player.totalRunSeconds / 120), // +1 per 2 min running
+      grit: player.bestStreak
+    };
+  }
+
+  function updateLevelBadge() {
+    var lvl = levelFromXp(player.xp);
+    var cur = xpToReach(lvl), next = xpToReach(lvl + 1);
+    var pct = next > cur ? Math.round(((player.xp - cur) / (next - cur)) * 100) : 0;
+    var t = document.getElementById("level-badge-text");
+    var xf = document.getElementById("level-badge-xp");
+    if (t) t.textContent = "Lv " + lvl;
+    if (xf) xf.style.width = pct + "%";
+  }
+
+  function renderCharacter() {
+    var lvl = levelFromXp(player.xp);
+    var cur = xpToReach(lvl), next = xpToReach(lvl + 1);
+    document.getElementById("char-level").textContent = "Lv " + lvl;
+    document.getElementById("char-rank").textContent = rankFor(lvl);
+    document.getElementById("char-xp-fill").style.width = (next > cur ? ((player.xp - cur) / (next - cur)) * 100 : 100) + "%";
+    document.getElementById("char-xp-text").textContent =
+      (player.xp - cur) + " / " + (next - cur) + " XP to Lv " + (lvl + 1) + "  ·  " + player.xp + " total";
+    var a = attributes();
+    function setAttr(id, val) {
+      var max = Math.max(10, Math.ceil((val + 1) / 10) * 10);
+      document.getElementById(id).style.width = Math.min(100, (val / max) * 100) + "%";
+      document.getElementById(id + "-val").textContent = val;
+    }
+    setAttr("attr-stamina", a.stamina);
+    setAttr("attr-speed", a.speed);
+    setAttr("attr-grit", a.grit);
+    document.getElementById("stat-workouts").textContent = player.workouts;
+    document.getElementById("stat-streak").textContent = player.streak;
+    document.getElementById("stat-best-streak").textContent = player.bestStreak;
+    document.getElementById("stat-total-time").textContent = Math.round(player.totalSeconds / 60) + "m";
+  }
+
+  // ---------------- Workout programs & saved workouts ----------------
+  var PROGRAM = [
+    { name: "Week 1 — Ease in", warmup: 5, run: 1, walk: 2, reps: 6, cooldown: 5 },
+    { name: "Week 2 — Build base", warmup: 5, run: 1, walk: 2, reps: 8, cooldown: 5 },
+    { name: "Week 3 — Longer runs", warmup: 5, run: 1.5, walk: 2, reps: 6, cooldown: 5 },
+    { name: "Week 4 — Even split", warmup: 5, run: 2, walk: 2, reps: 6, cooldown: 5 },
+    { name: "Week 5 — Less rest", warmup: 5, run: 2, walk: 1.5, reps: 6, cooldown: 5 },
+    { name: "Week 6 — Push tempo", warmup: 5, run: 3, walk: 1.5, reps: 5, cooldown: 5 },
+    { name: "Week 7 — Run strong", warmup: 5, run: 4, walk: 1, reps: 4, cooldown: 5 },
+    { name: "Week 8 — Almost there", warmup: 5, run: 5, walk: 1, reps: 4, cooldown: 5 }
+  ];
+  var SAVED_KEY = "rwSavedWorkouts";
+  function loadSaved() { try { return JSON.parse(localStorage.getItem(SAVED_KEY)) || []; } catch (e) { return []; } }
+  function saveSavedList(list) { try { localStorage.setItem(SAVED_KEY, JSON.stringify(list)); } catch (e) {} }
+
+  function workoutMatches(cfg) {
+    return cfg.warmup === settings.warmup && cfg.run === settings.run && cfg.walk === settings.walk &&
+           cfg.reps === settings.reps && cfg.cooldown === settings.cooldown;
+  }
+  function summarize(cfg) {
+    return cfg.reps + "× (" + fmtNum(cfg.run) + " run / " + fmtNum(cfg.walk) + " walk) · " +
+           fmtNum(cfg.warmup) + " wu / " + fmtNum(cfg.cooldown) + " cd (min)";
+  }
+
+  function applyWorkout(cfg) {
+    if (state === STATE_RUNNING || state === STATE_PAUSED) {
+      if (!confirm("Load this workout? It will reset the current one.")) return false;
+    }
+    settings.warmup = cfg.warmup; settings.run = cfg.run; settings.walk = cfg.walk;
+    settings.reps = cfg.reps; settings.cooldown = cfg.cooldown;
+    saveSettings(settings);
+    segments = buildSegments(settings);
+    totalDuration = segments.length ? segments[segments.length - 1].endTime : 0;
+    trackDirty = true;
+    state = STATE_IDLE;
+    currentIndex = -1;
+    stopTicking();
+    releaseWakeLock();
+    try { $workoutAudio.pause(); $workoutAudio.currentTime = 0; } catch (e) {}
+    prepareTrack();
+    renderIdleOrDone();
+    $btnStart.textContent = "Start";
+    $btnStart.classList.remove("hidden");
+    $btnPause.classList.add("hidden");
+    return true;
+  }
+
+  function makeWorkoutItem(cfg, deletable, idx) {
+    var item = document.createElement("div");
+    item.className = "wk-item" + (workoutMatches(cfg) ? " current" : "");
+    var main = document.createElement("div");
+    main.className = "wk-main";
+    var nm = document.createElement("div");
+    nm.className = "wk-name"; nm.textContent = cfg.name;
+    var det = document.createElement("div");
+    det.className = "wk-detail"; det.textContent = summarize(cfg);
+    main.appendChild(nm); main.appendChild(det);
+    if (workoutMatches(cfg)) {
+      var b = document.createElement("div");
+      b.className = "wk-badge"; b.textContent = "Selected";
+      main.appendChild(b);
+    }
+    item.appendChild(main);
+    item.addEventListener("click", function () { if (applyWorkout(cfg)) renderWorkoutsList(); });
+    if (deletable) {
+      var del = document.createElement("button");
+      del.className = "wk-del"; del.innerHTML = "&times;"; del.setAttribute("aria-label", "Delete");
+      del.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var list = loadSaved(); list.splice(idx, 1); saveSavedList(list); renderWorkoutsList();
+      });
+      item.appendChild(del);
+    }
+    return item;
+  }
+
+  function renderWorkoutsList() {
+    var pl = document.getElementById("program-list");
+    pl.innerHTML = "";
+    PROGRAM.forEach(function (cfg) { pl.appendChild(makeWorkoutItem(cfg, false)); });
+    var sl = document.getElementById("saved-list");
+    sl.innerHTML = "";
+    var saved = loadSaved();
+    if (!saved.length) {
+      var e = document.createElement("div");
+      e.className = "empty-note";
+      e.textContent = "No saved workouts yet — set your intervals, then save them below.";
+      sl.appendChild(e);
+    } else {
+      saved.forEach(function (cfg, idx) { sl.appendChild(makeWorkoutItem(cfg, true, idx)); });
+    }
+  }
 
   // ---------------- Segment plan ----------------
   function buildSegments(s) {
@@ -437,10 +971,14 @@
   var $repCounter = document.getElementById("rep-counter");
   var $nextPhase = document.getElementById("next-phase");
   var $totalTime = document.getElementById("total-time");
+  var $intervalFill = document.getElementById("interval-fill");
+  var $overallFill = document.getElementById("overall-fill");
+  var $intervalPct = document.getElementById("interval-pct");
+  var $overallPct = document.getElementById("overall-pct");
+  var $overallTrack = document.getElementById("overall-track");
   var $btnStart = document.getElementById("btn-start");
   var $btnPause = document.getElementById("btn-pause");
   var $btnReset = document.getElementById("btn-reset");
-  var $historyNote = document.getElementById("history-note");
   var $btnTheme = document.getElementById("btn-theme");
   var $btnSettings = document.getElementById("btn-settings");
   var $settingsOverlay = document.getElementById("settings-overlay");
@@ -568,6 +1106,11 @@
         else { tone(end, 500, 0.22, 1); }
       }
     });
+    // halfway "turn around" cue — a distinctive rising triple-beep (out-and-back runs)
+    if (totalDuration >= 180) {
+      var mid = totalDuration / 2;
+      [0, 0.18, 0.36].forEach(function (o, i) { tone(mid + o, 620 + i * 160, 0.13, 0.85); });
+    }
     // completion chime, baked right at the end so it plays as the clip finishes
     [523, 659, 784, 1047].forEach(function (f, i) { tone(totalDuration + i * 0.18, f, 0.2, 1); });
 
@@ -670,6 +1213,8 @@
     } else {
       document.getElementById("idle-sub").innerHTML = "Warm-up walk &rarr; " + settings.reps + "x (" +
         fmtNum(settings.run) + " min run / " + fmtNum(settings.walk) + " min walk) &rarr; cool-down walk";
+      var rl = document.getElementById("reward-line");
+      if (rl) rl.classList.add("hidden"); // only shown right after a completed workout
     }
   }
 
@@ -730,8 +1275,20 @@
     var remaining = seg.endTime - elapsed;
     $timeRemaining.textContent = fmtClock(remaining);
     $totalTime.textContent = "Total: " + fmtClock(elapsed) + " / " + fmtClock(totalDuration);
+
+    var segPct = seg.duration > 0 ? ((elapsed - seg.startTime) / seg.duration) * 100 : 0;
+    var overallPct = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
+    $intervalFill.style.width = clampPct(segPct) + "%";
+    $overallFill.style.width = clampPct(overallPct) + "%";
+    $intervalPct.textContent = Math.round(clampPct(segPct)) + "%";
+    $overallPct.textContent = Math.round(clampPct(overallPct)) + "%";
+    if (overallPct >= 50) $overallTrack.classList.add("past-turn");
+    else $overallTrack.classList.remove("past-turn");
+
     updateMediaSession(seg.label + " — " + fmtClock(remaining));
   }
+
+  function clampPct(p) { return Math.max(0, Math.min(100, p)); }
 
   function finishWorkout() {
     if (state === STATE_DONE) return;
@@ -740,15 +1297,26 @@
     releaseWakeLock();
     // Do not pause the audio here — let its baked-in completion chime finish.
     var totalSec = Math.round(totalDuration);
+    var runSec = segments.reduce(function (s, seg) { return s + (seg.type === "run" ? seg.duration : 0); }, 0);
     pushHistory({ date: new Date().toISOString(), totalSeconds: totalSec, reps: settings.reps });
-    updateHistoryNote();
+    var reward = awardWorkout(totalSec, runSec);
     currentIndex = -1;
     renderIdleOrDone("Workout complete!");
     document.getElementById("idle-sub").textContent = "Total time: " + fmtClock(totalSec) + " — saved.";
+    showReward(reward);
     $btnStart.textContent = "Start";
     $btnStart.classList.remove("hidden");
     $btnPause.classList.add("hidden");
     updateMediaSession("Workout complete");
+  }
+
+  function showReward(r) {
+    var el = document.getElementById("reward-line");
+    var html = '<span class="xp-pop">+' + r.xpGain + ' XP</span>';
+    if (r.streak > 1) html += '  ·  🔥 ' + r.streak + '-day streak';
+    if (r.leveledUp) html += '<br><span class="levelup">⭐ LEVEL UP! Lv ' + r.level + ' — ' + r.rank + '</span>';
+    el.innerHTML = html;
+    el.classList.remove("hidden");
   }
 
   function startTicking() {
@@ -932,15 +1500,35 @@
     return isInt ? Math.round(n) : Math.round(n * 100) / 100;
   }
 
-  // ---------------- History note ----------------
-  function updateHistoryNote() {
-    var h = loadHistory();
-    if (h.length === 0) { $historyNote.textContent = ""; return; }
-    var last = h[h.length - 1];
-    var d = new Date(last.date);
-    var dateStr = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    $historyNote.textContent = "Last: " + dateStr + " — " + fmtClock(last.totalSeconds);
-  }
+  // ---------------- Workouts & character panels ----------------
+  function openWorkouts() { renderWorkoutsList(); document.getElementById("workouts-overlay").classList.remove("hidden"); }
+  function closeWorkouts() { document.getElementById("workouts-overlay").classList.add("hidden"); }
+  function openCharacter() { renderCharacter(); document.getElementById("character-overlay").classList.remove("hidden"); }
+  function closeCharacter() { document.getElementById("character-overlay").classList.add("hidden"); }
+
+  document.getElementById("btn-workouts").addEventListener("click", openWorkouts);
+  document.getElementById("workouts-close").addEventListener("click", closeWorkouts);
+  document.getElementById("workouts-overlay").addEventListener("click", function (e) {
+    if (e.target.id === "workouts-overlay") closeWorkouts();
+  });
+  document.getElementById("btn-character").addEventListener("click", openCharacter);
+  document.getElementById("level-badge").addEventListener("click", openCharacter);
+  document.getElementById("character-close").addEventListener("click", closeCharacter);
+  document.getElementById("character-overlay").addEventListener("click", function (e) {
+    if (e.target.id === "character-overlay") closeCharacter();
+  });
+
+  document.getElementById("wk-save-btn").addEventListener("click", function () {
+    var nameEl = document.getElementById("wk-save-name");
+    var name = (nameEl.value || "").trim();
+    if (!name) name = "Run " + fmtNum(settings.run) + "/" + fmtNum(settings.walk) + " ×" + settings.reps;
+    var list = loadSaved();
+    list.push({ name: name, warmup: settings.warmup, run: settings.run, walk: settings.walk, reps: settings.reps, cooldown: settings.cooldown });
+    if (list.length > 30) list = list.slice(list.length - 30);
+    saveSavedList(list);
+    nameEl.value = "";
+    renderWorkoutsList();
+  });
 
   // ---------------- Prevent accidental navigation while running ----------------
   window.addEventListener("beforeunload", function (e) {
@@ -952,7 +1540,7 @@
 
   // ---------------- Init ----------------
   renderIdleOrDone();
-  updateHistoryNote();
+  updateLevelBadge();
   setupMediaSession();
   prepareTrack(); // render the workout clip up front so Start plays instantly
 })();
