@@ -263,6 +263,28 @@
     color: var(--warmup);
     margin-bottom: 10px;
   }
+  .setting-hint {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    line-height: 1.45;
+    padding: 6px 0 2px;
+  }
+  .setting-row input[type=checkbox] {
+    width: 26px;
+    height: 26px;
+    accent-color: var(--accent);
+  }
+  .test-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .test-btn:active { transform: scale(0.96); }
 </style>
 </head>
 <body>
@@ -323,6 +345,17 @@
       <label for="set-volume">Alert volume</label>
       <input type="range" id="set-volume" min="0" max="100" step="5">
     </div>
+    <div class="setting-row">
+      <label for="set-silent">Play alerts in silent mode</label>
+      <input type="checkbox" id="set-silent">
+    </div>
+    <div class="setting-hint">
+      iPhones mute web beeps when the ring/silent switch is on. Leave this OFF to keep your music mixing (just flip the ring switch on). Turn it ON to force alerts through the silent switch &mdash; but this may pause your Spotify/Apple Music.
+    </div>
+    <div class="setting-row">
+      <label>Test the alert sound</label>
+      <button type="button" id="btn-test-sound" class="test-btn">Test sound</button>
+    </div>
 
     <div id="settings-actions">
       <button id="settings-cancel">Cancel</button>
@@ -339,7 +372,7 @@
   "use strict";
 
   // ---------------- Defaults & persisted settings ----------------
-  var DEFAULTS = { warmup: 3, run: 1, walk: 2, reps: 8, cooldown: 2, volume: 40 };
+  var DEFAULTS = { warmup: 3, run: 1, walk: 2, reps: 8, cooldown: 2, volume: 55, silentOverride: false };
   var SETTINGS_KEY = "rwTimerSettings";
   var HISTORY_KEY = "rwTimerHistory";
 
@@ -418,6 +451,8 @@
   var $setReps = document.getElementById("set-reps");
   var $setCooldown = document.getElementById("set-cooldown");
   var $setVolume = document.getElementById("set-volume");
+  var $setSilent = document.getElementById("set-silent");
+  var $btnTestSound = document.getElementById("btn-test-sound");
 
   // ---------------- Audio (Web Audio API beeps) ----------------
   var audioCtx = null;
@@ -430,12 +465,23 @@
     return audioCtx;
   }
 
+  // On iOS the ring/silent switch mutes Web Audio unless the audio session
+  // is set to "playback". That override can pause other apps' audio, so it's
+  // opt-in; otherwise use "ambient" so the timer mixes under music.
+  function applyAudioSession() {
+    try {
+      if (navigator.audioSession) {
+        navigator.audioSession.type = settings.silentOverride ? "playback" : "ambient";
+      }
+    } catch (e) {}
+  }
+
   function beep(freq, durationMs, gainLevel) {
     try {
       var ctx = ensureAudioCtx();
       var osc = ctx.createOscillator();
       var gain = ctx.createGain();
-      var vol = (settings.volume / 100) * (gainLevel != null ? gainLevel : 1) * 0.35;
+      var vol = (settings.volume / 100) * (gainLevel != null ? gainLevel : 1) * 0.6;
       osc.type = "sine";
       osc.frequency.value = freq;
       gain.gain.setValueAtTime(0, ctx.currentTime);
@@ -638,6 +684,7 @@
   // ---------------- Controls ----------------
   function startWorkout() {
     ensureAudioCtx();
+    applyAudioSession();
     if (state === STATE_DONE || state === STATE_IDLE) {
       segments = buildSegments(settings);
       if (segments.length === 0) return;
@@ -741,6 +788,7 @@
     $setReps.value = settings.reps;
     $setCooldown.value = settings.cooldown;
     $setVolume.value = settings.volume;
+    $setSilent.checked = !!settings.silentOverride;
     var locked = state === STATE_RUNNING;
     $settingsLocked.classList.toggle("hidden", !locked);
     [$setWarmup, $setRun, $setWalk, $setReps, $setCooldown].forEach(function (el) {
@@ -757,22 +805,35 @@
   });
 
   document.getElementById("settings-save").addEventListener("click", function () {
-    if (state === STATE_RUNNING) { closeSettings(); return; }
-    var next = {
-      warmup: clampNum($setWarmup.value, 0, 30, DEFAULTS.warmup),
-      run: clampNum($setRun.value, 0.25, 30, DEFAULTS.run),
-      walk: clampNum($setWalk.value, 0.25, 30, DEFAULTS.walk),
-      reps: clampNum($setReps.value, 1, 30, DEFAULTS.reps, true),
-      cooldown: clampNum($setCooldown.value, 0, 30, DEFAULTS.cooldown),
-      volume: clampNum($setVolume.value, 0, 100, DEFAULTS.volume, true)
-    };
-    settings = next;
+    // Volume and silent-mode never change the interval plan, so they can be
+    // updated at any time — including mid-workout.
+    settings.volume = clampNum($setVolume.value, 0, 100, DEFAULTS.volume, true);
+    settings.silentOverride = $setSilent.checked;
+    if (state !== STATE_RUNNING) {
+      settings.warmup = clampNum($setWarmup.value, 0, 30, DEFAULTS.warmup);
+      settings.run = clampNum($setRun.value, 0.25, 30, DEFAULTS.run);
+      settings.walk = clampNum($setWalk.value, 0.25, 30, DEFAULTS.walk);
+      settings.reps = clampNum($setReps.value, 1, 30, DEFAULTS.reps, true);
+      settings.cooldown = clampNum($setCooldown.value, 0, 30, DEFAULTS.cooldown);
+      segments = buildSegments(settings);
+      currentIndex = 0;
+      state = STATE_IDLE;
+      renderIdleOrDone();
+    }
     saveSettings(settings);
-    segments = buildSegments(settings);
-    currentIndex = 0;
-    state = STATE_IDLE;
-    renderIdleOrDone();
+    applyAudioSession();
     closeSettings();
+  });
+
+  // Test sound: unlock audio and play a sample alert using the current
+  // (unsaved) volume + silent-mode selections, so the user can confirm it works.
+  $btnTestSound.addEventListener("click", function () {
+    settings.volume = clampNum($setVolume.value, 0, 100, DEFAULTS.volume, true);
+    settings.silentOverride = $setSilent.checked;
+    ensureAudioCtx();
+    applyAudioSession();
+    startKeepalive();
+    playPhaseChange("run");
   });
 
   function clampNum(val, min, max, fallback, isInt) {
