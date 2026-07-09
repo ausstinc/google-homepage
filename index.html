@@ -637,10 +637,37 @@
   .cal-cell.done { background: var(--run); color: #0b0d10; font-weight: 800; border-color: var(--run); }
   .cal-cell.planned { border-color: var(--accent); border-style: dashed; }
   .cal-cell.bball { border-color: var(--warmup); }
+  .cal-cell.missed { border-color: var(--warmup); border-width: 2px; }
   .cal-cell.selected { outline: 2px solid var(--text); outline-offset: 1px; }
   .cal-cell .cal-tag { font-size: 0.52rem; font-weight: 800; margin-top: 1px; line-height: 1; }
   .cal-cell.planned .cal-tag { color: var(--accent); }
+  .cal-cell.missed .cal-tag { color: var(--warmup); }
   .cal-cell.done .cal-tag { color: #0b0d10; }
+
+  /* Suggested-workout rows */
+  .suggest-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .suggest-date { font-weight: 700; font-size: 0.92rem; }
+  .suggest-week { font-size: 0.75rem; color: var(--text-dim); margin-top: 1px; }
+  .suggest-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .suggest-confirm {
+    background: var(--run); color: #0b0d10; border: none; border-radius: 8px;
+    padding: 8px 12px; font-weight: 800; font-size: 0.82rem; cursor: pointer;
+  }
+  .suggest-shuffle {
+    background: transparent; border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 8px 10px; font-size: 0.9rem; cursor: pointer;
+  }
+  .suggest-confirm:active, .suggest-shuffle:active { transform: scale(0.96); }
   #cal-legend { display: flex; gap: 14px; justify-content: center; font-size: 0.72rem; color: var(--text-dim); margin: 14px 0; flex-wrap: wrap; }
   #cal-legend span { display: flex; align-items: center; gap: 5px; }
   .legend-swatch { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
@@ -841,12 +868,23 @@
     <div id="cal-grid"></div>
     <div id="cal-legend">
       <span><i class="legend-swatch" style="background:var(--run)"></i> Completed</span>
-      <span><i class="legend-swatch" style="border:2px dashed var(--accent);background:transparent"></i> Planned</span>
+      <span><i class="legend-swatch" style="border:2px dashed var(--accent);background:transparent"></i> Confirmed</span>
+      <span><i class="legend-swatch" style="border:2px solid var(--warmup);background:transparent"></i> Missed</span>
       <span>🏀 Basketball</span>
       <span><i class="legend-swatch" style="border:2px solid var(--accent);background:transparent"></i> Today</span>
     </div>
     <div id="cal-detail">Tap a day to see what you did or what&rsquo;s planned.</div>
-    <h3>Run days (used to plan the weeks ahead)</h3>
+
+    <h3>Suggested workouts</h3>
+    <div class="setting-hint" style="margin-top:-4px;margin-bottom:8px;">
+      Picked from your current program week. Confirm one to lock it in, or shuffle for a different day.
+    </div>
+    <div id="suggestion-list"></div>
+
+    <h3>Preferred days (optional)</h3>
+    <div class="setting-hint" style="margin-top:-4px;margin-bottom:8px;">
+      A hint for the suggestion engine, not a hard rule — it'll still fill in other days if needed.
+    </div>
     <div id="cal-days"></div>
     <button class="sheet-close" id="calendar-close">Close</button>
   </div>
@@ -1218,14 +1256,14 @@
 
   // ---------------- Workout programs & saved workouts ----------------
   var PROGRAM = [
-    { name: "Week 1 — Ease in", warmup: 5, run: 1, walk: 2, reps: 6, cooldown: 5 },
-    { name: "Week 2 — Build base", warmup: 5, run: 1, walk: 2, reps: 8, cooldown: 5 },
-    { name: "Week 3 — Longer runs", warmup: 5, run: 1.5, walk: 2, reps: 6, cooldown: 5 },
-    { name: "Week 4 — Even split", warmup: 5, run: 2, walk: 2, reps: 6, cooldown: 5 },
-    { name: "Week 5 — Less rest", warmup: 5, run: 2, walk: 1.5, reps: 6, cooldown: 5 },
-    { name: "Week 6 — Push tempo", warmup: 5, run: 3, walk: 1.5, reps: 5, cooldown: 5 },
-    { name: "Week 7 — Run strong", warmup: 5, run: 4, walk: 1, reps: 4, cooldown: 5 },
-    { name: "Week 8 — Almost there", warmup: 5, run: 5, walk: 1, reps: 4, cooldown: 5 }
+    { name: "Week 1 — Ease in", warmup: 5, run: 1, walk: 2, reps: 6, cooldown: 5, sessionsPerWeek: 3 },
+    { name: "Week 2 — Build base", warmup: 5, run: 1, walk: 2, reps: 8, cooldown: 5, sessionsPerWeek: 3 },
+    { name: "Week 3 — Longer runs", warmup: 5, run: 1.5, walk: 2, reps: 6, cooldown: 5, sessionsPerWeek: 3 },
+    { name: "Week 4 — Even split", warmup: 5, run: 2, walk: 2, reps: 6, cooldown: 5, sessionsPerWeek: 3 },
+    { name: "Week 5 — Less rest", warmup: 5, run: 2, walk: 1.5, reps: 6, cooldown: 5, sessionsPerWeek: 3 },
+    { name: "Week 6 — Push tempo", warmup: 5, run: 3, walk: 1.5, reps: 5, cooldown: 5, sessionsPerWeek: 3 },
+    { name: "Week 7 — Run strong", warmup: 5, run: 4, walk: 1, reps: 4, cooldown: 5, sessionsPerWeek: 3 },
+    { name: "Week 8 — Almost there", warmup: 5, run: 5, walk: 1, reps: 4, cooldown: 5, sessionsPerWeek: 3 }
   ];
   var SAVED_KEY = "rwSavedWorkouts";
   function loadSaved() { try { return JSON.parse(localStorage.getItem(SAVED_KEY)) || []; } catch (e) { return []; } }
@@ -1948,7 +1986,8 @@
   });
 
   // ---------------- Calendar ----------------
-  var SCHEDULE_KEY = "rwSchedule";
+  var SCHEDULE_KEY = "rwSchedule"; // "preferred days" — a soft hint for the suggestion engine, not a hard rule
+  var CONFIRMED_KEY = "rwConfirmedSchedule";
   var DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   function loadSchedule() {
@@ -1956,6 +1995,8 @@
     catch (e) { return [1, 3, 5]; }
   }
   function saveSchedule(s) { try { localStorage.setItem(SCHEDULE_KEY, JSON.stringify(s)); } catch (e) {} }
+  function loadConfirmed() { try { return JSON.parse(localStorage.getItem(CONFIRMED_KEY)) || {}; } catch (e) { return {}; } }
+  function saveConfirmed(c) { try { localStorage.setItem(CONFIRMED_KEY, JSON.stringify(c)); } catch (e) {} }
 
   function dateKey(d) { return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
 
@@ -1975,42 +2016,161 @@
     return 0;                                         // not started -> Week 1
   }
 
-  // Project the remaining program weeks forward onto the chosen run-days.
-  // Each program week repeats for a rolling 7 days from its own start date
-  // (not a fixed Monday–Sunday calendar week) — matching how advanceProgram()
-  // actually progresses after a real run, so the calendar and the real
-  // advance logic never disagree.
-  function buildProjection() {
-    var sched = loadSchedule();
-    var map = {};
-    if (!sched.length) return map;
+  // Which program week a given date falls into, using the same rolling
+  // 7-day-window math advanceProgram() uses for real — so a confirmed date's
+  // label can never disagree with what actually happens when you run it.
+  function programIndexForDate(key) {
     var baseIdx = nextProgramIndex();
-    if (baseIdx >= PROGRAM.length) return map;
+    if (baseIdx >= PROGRAM.length) return null;
+    var anchor = player.programWeekStartKey || todayStr();
+    var idx = baseIdx + Math.floor(daysBetween(anchor, key) / 7);
+    return idx < PROGRAM.length ? idx : null;
+  }
+
+  // The program week window (7 rolling days) that contains today.
+  function currentWindowRange() {
+    var baseIdx = nextProgramIndex();
+    if (baseIdx >= PROGRAM.length) return null;
+    var anchor = player.programWeekStartKey || todayStr();
+    var elapsedWindows = Math.floor(daysBetween(anchor, todayStr()) / 7);
+    var idx = baseIdx + elapsedWindows;
+    if (idx >= PROGRAM.length) return null;
+    var start = keyToDate(anchor); start.setDate(start.getDate() + elapsedWindows * 7);
+    var end = new Date(start); end.setDate(end.getDate() + 6);
+    return { start: dateKey(start), end: dateKey(end), idx: idx };
+  }
+
+  // How many sessions (completed OR already confirmed) already fall in a date range.
+  function countSessionsInWindow(startKey, endKey) {
+    var s = keyToDate(startKey).getTime(), e = keyToDate(endKey).getTime();
+    var seen = {}, count = 0;
+    loadHistory().forEach(function (h) {
+      var k = dateKey(new Date(h.date)); var t = keyToDate(k).getTime();
+      if (t >= s && t <= e && !seen[k]) { seen[k] = true; count++; }
+    });
+    var confirmed = loadConfirmed();
+    Object.keys(confirmed).forEach(function (k) {
+      var t = keyToDate(k).getTime();
+      if (t >= s && t <= e && !seen[k]) { seen[k] = true; count++; }
+    });
+    return count;
+  }
+
+  // Open (unconfirmed, unlogged, non-basketball) dates within a range, from today onward.
+  function buildCandidateDates(startKey, endKey, exclude) {
+    var confirmed = loadConfirmed();
     var acts = loadActivities();
-    var anchorKey = player.programWeekStartKey || todayStr();
-    var d = new Date(); d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 1); // start tomorrow
-    var guard = 0;
-    while (guard < 400) {
-      var dKey = dateKey(d);
-      var idx = baseIdx + Math.floor(daysBetween(anchorKey, dKey) / 7);
-      if (idx >= PROGRAM.length) break; // program finishes before this date — nothing further to project
-      // schedule a run on chosen weekdays, but skip days you've marked for basketball
-      if (sched.indexOf(d.getDay()) !== -1 && !acts[dKey]) {
-        map[dKey] = { weekIndex: idx, name: PROGRAM[idx].name };
-      }
+    var histSet = {}; loadHistory().forEach(function (h) { histSet[dateKey(new Date(h.date))] = true; });
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var start = keyToDate(startKey); if (start.getTime() < today.getTime()) start = today;
+    var end = keyToDate(endKey);
+    var list = [];
+    var d = new Date(start);
+    while (d.getTime() <= end.getTime()) {
+      var k = dateKey(d);
+      if (!confirmed[k] && !acts[k] && !histSet[k] && !(exclude && exclude[k])) list.push(new Date(d));
       d.setDate(d.getDate() + 1);
-      guard++;
     }
-    return map;
+    return list;
+  }
+
+  // Pick `count` dates spread evenly across the candidates, preferring the
+  // given weekdays when there are enough of them to fill the need.
+  function pickSpacedDates(candidates, count, preferredDows) {
+    if (count <= 0 || !candidates.length) return [];
+    var pool = candidates;
+    if (preferredDows && preferredDows.length) {
+      var preferred = candidates.filter(function (d) { return preferredDows.indexOf(d.getDay()) !== -1; });
+      if (preferred.length >= count) pool = preferred;
+    }
+    if (pool.length <= count) return pool.slice(0, count);
+    var seen = {}, result = [];
+    for (var i = 0; i < count; i++) {
+      var idx = Math.round((i * (pool.length - 1)) / Math.max(1, count - 1));
+      var k = dateKey(pool[idx]);
+      if (!seen[k]) { seen[k] = true; result.push(pool[idx]); }
+    }
+    var pi = 0;
+    while (result.length < count && pi < pool.length) {
+      var k2 = dateKey(pool[pi]);
+      if (!seen[k2]) { seen[k2] = true; result.push(pool[pi]); }
+      pi++;
+    }
+    result.sort(function (a, b) { return a - b; });
+    return result.slice(0, count);
+  }
+
+  // The recommendation engine: how many more sessions does the current
+  // program week need, and which specific open dates best fit them.
+  function generateSuggestions(exclude) {
+    var win = currentWindowRange();
+    if (!win) return { suggestions: [], reason: player.gradFlag ? "graduated" : "inactive" };
+    var target = (PROGRAM[win.idx] && PROGRAM[win.idx].sessionsPerWeek) || 3;
+    var already = countSessionsInWindow(win.start, win.end);
+    var needed = target - already;
+    if (needed <= 0) return { suggestions: [], reason: "full", idx: win.idx };
+    var candidates = buildCandidateDates(win.start, win.end, exclude);
+    var picks = pickSpacedDates(candidates, needed, loadSchedule());
+    return {
+      suggestions: picks.map(function (d) { return { key: dateKey(d), date: d, weekIndex: win.idx }; }),
+      reason: picks.length ? "ok" : "no-room",
+      idx: win.idx
+    };
+  }
+
+  // Confirming your very first suggestion starts the program (if you hadn't
+  // explicitly picked a week yet) so it isn't stuck "not started" forever.
+  function confirmDate(key) {
+    if (player.programWeek < 0) {
+      player.programWeek = 0;
+      player.programWeekStartKey = todayStr();
+      savePlayer();
+      var wk = PROGRAM[0];
+      settings.warmup = wk.warmup; settings.run = wk.run; settings.walk = wk.walk;
+      settings.reps = wk.reps; settings.cooldown = wk.cooldown;
+      saveSettings(settings);
+      segments = buildSegments(settings);
+      totalDuration = segments.length ? segments[segments.length - 1].endTime : 0;
+      trackDirty = true;
+      prepareTrack();
+    }
+    var confirmed = loadConfirmed();
+    confirmed[key] = true;
+    saveConfirmed(confirmed);
+  }
+  function unconfirmDate(key) {
+    var confirmed = loadConfirmed();
+    delete confirmed[key];
+    saveConfirmed(confirmed);
+  }
+  // Drop confirmed dates that are now actually completed (they show as "done" instead).
+  function cleanConfirmed() {
+    var confirmed = loadConfirmed();
+    var histSet = {}; loadHistory().forEach(function (h) { histSet[dateKey(new Date(h.date))] = true; });
+    var changed = false;
+    Object.keys(confirmed).forEach(function (k) { if (histSet[k]) { delete confirmed[k]; changed = true; } });
+    if (changed) saveConfirmed(confirmed);
+    return confirmed;
+  }
+  function buildScheduleMaps() {
+    var confirmed = cleanConfirmed();
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var planned = {}, missed = {};
+    Object.keys(confirmed).forEach(function (k) {
+      var idx = programIndexForDate(k);
+      var entry = { weekIndex: idx, name: idx != null && PROGRAM[idx] ? PROGRAM[idx].name : "Workout" };
+      if (keyToDate(k).getTime() < today.getTime()) missed[k] = entry; else planned[k] = entry;
+    });
+    return { planned: planned, missed: missed };
   }
 
   var calView = { y: 0, m: 0 };
   var calSelectedKey = null;
+  var suggestShuffledOut = {}; // dates temporarily skipped this session via the shuffle button
 
   function renderCalendar() {
     var histMap = historyByDay();
-    var projMap = buildProjection();
+    var maps = buildScheduleMaps();
     var acts = loadActivities();
     var today = new Date(); var todayKey = dateKey(today);
 
@@ -2033,23 +2193,27 @@
       var tag = "";
       if (histMap[key]) { cell.classList.add("done"); tag = "✓"; if (acts[key]) tag += "🏀"; }
       else if (acts[key]) { cell.classList.add("bball"); tag = "🏀"; }
-      else if (projMap[key]) { cell.classList.add("planned"); tag = "W" + (projMap[key].weekIndex + 1); }
+      else if (maps.planned[key]) { cell.classList.add("planned"); tag = "W" + (maps.planned[key].weekIndex + 1); }
+      else if (maps.missed[key]) { cell.classList.add("missed"); tag = "!"; }
       if (key === todayKey) cell.classList.add("today");
       if (key === calSelectedKey) cell.classList.add("selected");
       cell.innerHTML = '<span class="cal-num">' + day + '</span>' + (tag ? '<span class="cal-tag">' + tag + '</span>' : '');
-      (function (k) { cell.addEventListener("click", function () { calSelectedKey = k; showDayDetail(k, histMap, projMap); renderCalendar(); }); })(key);
+      (function (k) { cell.addEventListener("click", function () { calSelectedKey = k; showDayDetail(k, histMap, maps); renderCalendar(); }); })(key);
       grid.appendChild(cell);
     }
-    if (calSelectedKey) showDayDetail(calSelectedKey, histMap, projMap);
+    if (calSelectedKey) showDayDetail(calSelectedKey, histMap, maps);
   }
 
-  function showDayDetail(key, histMap, projMap) {
+  function showDayDetail(key, histMap, maps) {
     histMap = histMap || historyByDay();
-    projMap = projMap || buildProjection();
+    maps = maps || buildScheduleMaps();
     var acts = loadActivities();
     var parts = key.split("-").map(Number);
     var d = new Date(parts[0], parts[1] - 1, parts[2]);
     var nice = DOW[d.getDay()] + ", " + MONTHS[d.getMonth()] + " " + d.getDate();
+    var todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    var isFuture = keyToDate(key).getTime() >= todayStart.getTime();
+
     var lines = [];
     if (histMap[key]) {
       histMap[key].forEach(function (h) {
@@ -2058,20 +2222,74 @@
       });
     }
     if (acts[key]) lines.push('🏀 Basketball' + (keyIsPastOrToday(key) ? '' : ' (planned)'));
-    if (!histMap[key] && !acts[key]) {
-      if (projMap[key]) lines.push('📋 Planned run: ' + projMap[key].name);
-      else lines.push('<span style="color:var(--text-dim)">Rest day — nothing logged.</span>');
+    if (!histMap[key]) {
+      if (maps.planned[key]) lines.push('📋 Confirmed: ' + maps.planned[key].name);
+      else if (maps.missed[key]) lines.push('<span style="color:var(--warmup)">⚠️ Missed — confirmed but not completed.</span>');
+      else if (!acts[key]) lines.push('<span style="color:var(--text-dim)">Nothing scheduled.</span>');
     }
     var el = document.getElementById("cal-detail");
     el.innerHTML = '<div class="cd-title">' + nice + '</div>' + lines.join('<br>');
 
-    var btn = document.createElement("button");
-    btn.className = "test-btn";
-    btn.style.marginTop = "10px";
-    btn.style.width = "100%";
-    btn.textContent = acts[key] ? "🏀 Remove basketball" : "🏀 Mark basketball";
-    btn.addEventListener("click", function () { toggleBasketball(key); renderCalendar(); });
-    el.appendChild(btn);
+    var bballBtn = document.createElement("button");
+    bballBtn.className = "test-btn"; bballBtn.style.marginTop = "10px"; bballBtn.style.width = "100%";
+    bballBtn.textContent = acts[key] ? "🏀 Remove basketball" : "🏀 Mark basketball";
+    bballBtn.addEventListener("click", function () { toggleBasketball(key); renderCalendar(); });
+    el.appendChild(bballBtn);
+
+    if (!histMap[key] && isFuture) {
+      var schedBtn = document.createElement("button");
+      schedBtn.className = "test-btn"; schedBtn.style.marginTop = "8px"; schedBtn.style.width = "100%";
+      if (maps.planned[key]) {
+        schedBtn.textContent = "✕ Remove from schedule";
+        schedBtn.addEventListener("click", function () { unconfirmDate(key); renderCalendar(); renderSuggestions(); });
+      } else {
+        schedBtn.textContent = "➕ Confirm as workout day";
+        schedBtn.addEventListener("click", function () { confirmDate(key); renderCalendar(); renderSuggestions(); });
+      }
+      el.appendChild(schedBtn);
+    } else if (maps.missed[key]) {
+      var clearBtn = document.createElement("button");
+      clearBtn.className = "test-btn"; clearBtn.style.marginTop = "8px"; clearBtn.style.width = "100%";
+      clearBtn.textContent = "Clear missed mark";
+      clearBtn.addEventListener("click", function () { unconfirmDate(key); renderCalendar(); });
+      el.appendChild(clearBtn);
+    }
+  }
+
+  function renderSuggestions() {
+    var wrap = document.getElementById("suggestion-list");
+    wrap.innerHTML = "";
+    var result = generateSuggestions(suggestShuffledOut);
+    if (!result.suggestions.length) {
+      var msg =
+        result.reason === "graduated" ? "🎓 Program complete — nothing left to schedule." :
+        result.reason === "inactive" ? "Pick a workout in “Choose workout” to get suggestions, or confirm any day below to start Week 1." :
+        result.reason === "full" ? "You're fully scheduled for this week's " + (PROGRAM[result.idx] ? PROGRAM[result.idx].name : "workout") + "." :
+        "No open days left this week — confirm one manually below if you'd like.";
+      var e = document.createElement("div"); e.className = "empty-note"; e.textContent = msg;
+      wrap.appendChild(e);
+      return;
+    }
+    result.suggestions.forEach(function (s) {
+      var row = document.createElement("div");
+      row.className = "suggest-row";
+      var nice = DOW[s.date.getDay()] + ", " + MONTHS[s.date.getMonth()] + " " + s.date.getDate();
+      var main = document.createElement("div");
+      main.className = "suggest-main";
+      main.innerHTML = '<div class="suggest-date">' + nice + '</div><div class="suggest-week">' +
+        (PROGRAM[s.weekIndex] ? PROGRAM[s.weekIndex].name : "") + '</div>';
+      var actions = document.createElement("div");
+      actions.className = "suggest-actions";
+      var confirmBtn = document.createElement("button");
+      confirmBtn.className = "suggest-confirm"; confirmBtn.textContent = "✓ Confirm";
+      confirmBtn.addEventListener("click", function () { confirmDate(s.key); renderSuggestions(); renderCalendar(); });
+      var shuffleBtn = document.createElement("button");
+      shuffleBtn.className = "suggest-shuffle"; shuffleBtn.textContent = "🔀"; shuffleBtn.setAttribute("aria-label", "Suggest a different day");
+      shuffleBtn.addEventListener("click", function () { suggestShuffledOut[s.key] = true; renderSuggestions(); });
+      actions.appendChild(confirmBtn); actions.appendChild(shuffleBtn);
+      row.appendChild(main); row.appendChild(actions);
+      wrap.appendChild(row);
+    });
   }
 
   function renderDayPicker() {
@@ -2088,7 +2306,7 @@
         if (pos === -1) s.push(idx); else s.splice(pos, 1);
         saveSchedule(s);
         renderDayPicker();
-        renderCalendar();
+        renderSuggestions();
       });
       wrap.appendChild(b);
     });
@@ -2098,8 +2316,10 @@
     var t = new Date();
     calView = { y: t.getFullYear(), m: t.getMonth() };
     calSelectedKey = null;
+    suggestShuffledOut = {};
     document.getElementById("cal-detail").textContent = "Tap a day to see what you did or what’s planned.";
     renderDayPicker();
+    renderSuggestions();
     renderCalendar();
     document.getElementById("calendar-overlay").classList.remove("hidden");
   }
@@ -2118,7 +2338,7 @@
   });
 
   // ---------------- Backup & restore ----------------
-  var BACKUP_KEYS = ["rwTimerSettings", "rwTimerHistory", "rwPlayer", "rwSavedWorkouts", "rwSchedule", "rwTimerTheme", "rwActivities"];
+  var BACKUP_KEYS = ["rwTimerSettings", "rwTimerHistory", "rwPlayer", "rwSavedWorkouts", "rwSchedule", "rwTimerTheme", "rwActivities", "rwConfirmedSchedule"];
 
   function makeBackup() {
     var data = {};
