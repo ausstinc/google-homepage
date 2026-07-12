@@ -683,6 +683,26 @@
     font-weight: 700; cursor: pointer; color: var(--text-dim);
   }
   .cal-day-toggle.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* GPS */
+  #gps-stats {
+    margin-top: 8px;
+    font-size: clamp(0.95rem, 4.2vw, 1.35rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-dim);
+  }
+  #stage.has-color #gps-stats { color: #0b0d10; opacity: 0.85; }
+  .gps-sep { opacity: 0.5; }
+  #gps-status { font-size: 0.85em; opacity: 0.6; }
+  #gps-status.warn { opacity: 1; }
+  #route-svg-wrap { margin-top: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 10px; }
+  #route-svg-wrap svg { display: block; width: 100%; height: auto; }
+  #route-svg-wrap .route-caption { font-size: 0.75rem; color: var(--text-dim); text-align: center; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -723,6 +743,7 @@
     </div>
 
     <div id="total-time">Total: 0:00</div>
+    <div id="gps-stats" class="hidden"><span id="gps-distance">0.00 mi</span><span class="gps-sep">·</span><span id="gps-pace">--:-- /mi</span><span id="gps-status" class="hidden">📍</span></div>
   </div>
 </div>
 
@@ -768,6 +789,24 @@
     <div class="setting-hint">
       Turn this ON to keep alerts playing through the ring/silent switch <b>and</b> while your screen is locked &mdash; recommended for running with the phone in a pocket. It takes over audio, so your Spotify/Apple Music may pause. Leave it OFF to mix quietly under music (needs the ring switch on, and alerts stop when the screen locks).
     </div>
+
+    <div class="backup-head">GPS tracking</div>
+    <div class="setting-row">
+      <label for="set-gps">Track GPS route</label>
+      <input type="checkbox" id="set-gps">
+    </div>
+    <div class="setting-hint">
+      Records distance and your route using your phone's location. <b>Needs the screen on and the app open the whole time</b> &mdash; iOS turns location off the moment the screen locks, with no workaround (same as any web app). Uses more battery. Your route is stored only on this device (and in your own backups) &mdash; never sent anywhere.
+    </div>
+    <div class="setting-row">
+      <label for="set-gps-live">Show live distance &amp; pace</label>
+      <input type="checkbox" id="set-gps-live">
+    </div>
+    <div class="setting-row">
+      <label for="set-gps-km">Use kilometers</label>
+      <input type="checkbox" id="set-gps-km">
+    </div>
+
     <div class="setting-row">
       <label>Test the alert sound</label>
       <button type="button" id="btn-test-sound" class="test-btn">Test sound</button>
@@ -852,6 +891,7 @@
       <div class="stat-tile"><div class="stat-num" id="stat-streak">0</div><div class="stat-lbl">Day streak</div></div>
       <div class="stat-tile"><div class="stat-num" id="stat-best-streak">0</div><div class="stat-lbl">Best streak</div></div>
       <div class="stat-tile"><div class="stat-num" id="stat-total-time">0m</div><div class="stat-lbl">Total time</div></div>
+      <div class="stat-tile"><div class="stat-num" id="stat-distance">0</div><div class="stat-lbl">Distance</div></div>
     </div>
     <button class="sheet-close" id="character-close">Close</button>
   </div>
@@ -874,6 +914,7 @@
       <span><i class="legend-swatch" style="border:2px solid var(--accent);background:transparent"></i> Today</span>
     </div>
     <div id="cal-detail">Tap a day to see what you did or what&rsquo;s planned.</div>
+    <div id="cal-route"></div>
 
     <h3>Suggested workouts</h3>
     <div class="setting-hint" style="margin-top:-4px;margin-bottom:8px;">
@@ -899,7 +940,7 @@
   "use strict";
 
   // ---------------- Defaults & persisted settings ----------------
-  var DEFAULTS = { warmup: 3, run: 1, walk: 2, reps: 8, cooldown: 2, volume: 55, silentOverride: false };
+  var DEFAULTS = { warmup: 3, run: 1, walk: 2, reps: 8, cooldown: 2, volume: 55, silentOverride: false, gpsEnabled: false, showLiveGps: true, distanceUnit: "mi" };
   var SETTINGS_KEY = "rwTimerSettings";
   var HISTORY_KEY = "rwTimerHistory";
 
@@ -930,7 +971,7 @@
   var PLAYER_KEY = "rwPlayer";
   var PLAYER_DEFAULT = {
     xp: 0, workouts: 0, streak: 0, bestStreak: 0, lastDate: null,
-    totalSeconds: 0, totalRunSeconds: 0,
+    totalSeconds: 0, totalRunSeconds: 0, totalDistanceMeters: 0,
     badges: {}, questClaims: {}, programWeek: -1, programWeekStartKey: null, bballXp: {}
   };
 
@@ -1035,21 +1076,26 @@
 
   // Award base XP + update streak/stats for a finished workout.
   // Returns the base info; quests/badges/program are layered on in finishWorkout.
-  function awardWorkout(totalSec, runSec) {
+  function awardWorkout(totalSec, runSec, distanceMeters) {
     // history already includes this workout when this is called
     refreshStreak();
     player.lastDate = todayStr();
 
     var streakMult = 1 + Math.min(player.streak - 1, 5) * 0.1; // up to 1.5x
-    var xpGain = Math.max(1, Math.round((totalSec / 60 + (runSec / 60) * 2) * streakMult));
+    var distanceXp = distanceMeters ? Math.round((distanceMeters / METERS_PER_MILE) * 8) : 0; // +8 XP/mile
+    var xpGain = Math.max(1, Math.round((totalSec / 60 + (runSec / 60) * 2) * streakMult) + distanceXp);
 
     var before = levelFromXp(player.xp);
     player.xp += xpGain;
     player.workouts += 1;
     player.totalSeconds += Math.round(totalSec);
     player.totalRunSeconds += Math.round(runSec);
+    if (distanceMeters) {
+      player.totalDistanceMeters = (player.totalDistanceMeters || 0) + distanceMeters;
+      if (distanceMeters > (player.bestRunDistanceMeters || 0)) player.bestRunDistanceMeters = distanceMeters;
+    }
     savePlayer();
-    return { xpGain: xpGain, beforeLevel: before, streak: player.streak };
+    return { xpGain: xpGain, beforeLevel: before, streak: player.streak, distanceMeters: distanceMeters || 0 };
   }
 
   // ---------------- Weekly quests ----------------
@@ -1116,7 +1162,10 @@
     { id: "earlybird", ico: "🌅", name: "Early Bird", has: function (p) { return !!p.earlyFlag; } },
     { id: "nightowl", ico: "🌙", name: "Night Owl", has: function (p) { return !!p.nightFlag; } },
     { id: "baller", ico: "🏀", name: "First Game", has: function () { return bballLoggedCount() >= 1; } },
-    { id: "hooper", ico: "⛹️", name: "Hooper (10)", has: function () { return bballLoggedCount() >= 10; } }
+    { id: "hooper", ico: "⛹️", name: "Hooper (10)", has: function () { return bballLoggedCount() >= 10; } },
+    { id: "distance1mi", ico: "🎯", name: "First Mile", has: function (p) { return (p.totalDistanceMeters || 0) >= 1609; } },
+    { id: "distance5k", ico: "🏅", name: "5K Runner", has: function (p) { return (p.bestRunDistanceMeters || 0) >= 5000; } },
+    { id: "distance10mi", ico: "🌍", name: "10 Mile Club", has: function (p) { return (p.totalDistanceMeters || 0) >= 16093; } }
   ];
   // Unlock any newly-earned badges; returns the list of newly unlocked badge objects.
   function checkBadges() {
@@ -1217,6 +1266,7 @@
     document.getElementById("stat-streak").textContent = player.streak;
     document.getElementById("stat-best-streak").textContent = player.bestStreak;
     document.getElementById("stat-total-time").textContent = Math.round(player.totalSeconds / 60) + "m";
+    document.getElementById("stat-distance").textContent = formatDistance(player.totalDistanceMeters || 0);
     renderQuests();
     renderBadges();
   }
@@ -1411,6 +1461,9 @@
   var $setVolume = document.getElementById("set-volume");
   var $setSilent = document.getElementById("set-silent");
   var $btnTestSound = document.getElementById("btn-test-sound");
+  var $setGps = document.getElementById("set-gps");
+  var $setGpsLive = document.getElementById("set-gps-live");
+  var $setGpsKm = document.getElementById("set-gps-km");
 
   // ---------------- Audio (Web Audio API beeps) ----------------
   var audioCtx = null;
@@ -1462,6 +1515,158 @@
     notes.forEach(function (f, i) {
       setTimeout(function () { beep(f, 220, 1); }, i * 180);
     });
+  }
+
+  // ---------------- GPS tracking ----------------
+  // Best-effort and fully optional: any failure here (permission denied,
+  // unsupported browser, noisy readings) must never affect the timer itself.
+  var METERS_PER_MILE = 1609.344;
+  var GPS_MIN_ACCURACY_M = 35;     // ignore readings noisier than this
+  var GPS_MAX_SPEED_MPS = 12.5;    // ~28 mph — reject GPS jumps faster than this as glitches
+  var GPS_STORE_MIN_METERS = 8;    // throttle stored route points so long runs stay small
+  var GPS_STORE_MIN_SECONDS = 8;
+
+  var gpsWatchId = null;
+  var gpsStatus = "idle"; // idle | acquiring | active | denied | unavailable | error
+  var gpsDistanceMeters = 0;
+  var gpsLastFix = null;      // {lat, lon, t} — last accepted fix, for distance deltas
+  var gpsLastStored = null;   // last fix actually pushed into gpsPoints (throttled)
+  var gpsPoints = [];         // [{lat, lon}] recorded route for the current workout
+
+  function haversineMeters(lat1, lon1, lat2, lon2) {
+    var R = 6371000;
+    var toRad = function (d) { return d * Math.PI / 180; };
+    var dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function resetGpsState() {
+    gpsDistanceMeters = 0;
+    gpsLastFix = null;
+    gpsLastStored = null;
+    gpsPoints = [];
+  }
+
+  function startGpsTracking() {
+    if (!settings.gpsEnabled) return;
+    if (!("geolocation" in navigator)) { gpsStatus = "unavailable"; updateGpsStatusIcon(); return; }
+    resetGpsState();
+    gpsStatus = "acquiring";
+    updateGpsStatusIcon();
+    try {
+      gpsWatchId = navigator.geolocation.watchPosition(onGpsPosition, onGpsError, {
+        enableHighAccuracy: true, maximumAge: 2000, timeout: 20000
+      });
+    } catch (e) { gpsStatus = "error"; updateGpsStatusIcon(); }
+  }
+
+  function stopGpsTracking() {
+    if (gpsWatchId != null && "geolocation" in navigator) {
+      try { navigator.geolocation.clearWatch(gpsWatchId); } catch (e) {}
+    }
+    gpsWatchId = null;
+  }
+
+  function onGpsPosition(pos) {
+    try {
+      var lat = pos.coords.latitude, lon = pos.coords.longitude, acc = pos.coords.accuracy;
+      var now = Date.now();
+      gpsStatus = "active";
+      if (acc != null && acc > GPS_MIN_ACCURACY_M) { updateGpsStatusIcon(); return; } // too noisy, skip
+      if (state === STATE_RUNNING) {
+        if (gpsLastFix) {
+          var dt = (now - gpsLastFix.t) / 1000;
+          if (dt > 0) {
+            var d = haversineMeters(gpsLastFix.lat, gpsLastFix.lon, lat, lon);
+            if (d / dt <= GPS_MAX_SPEED_MPS) {
+              gpsDistanceMeters += d;
+              if (!gpsLastStored || haversineMeters(gpsLastStored.lat, gpsLastStored.lon, lat, lon) >= GPS_STORE_MIN_METERS ||
+                  (now - gpsLastStored.t) / 1000 >= GPS_STORE_MIN_SECONDS) {
+                gpsPoints.push({ lat: lat, lon: lon });
+                gpsLastStored = { lat: lat, lon: lon, t: now };
+              }
+            }
+            // else: an implausible jump (GPS glitch) — skip the distance, still update lastFix below
+          }
+        } else if (!gpsPoints.length) {
+          gpsPoints.push({ lat: lat, lon: lon });
+          gpsLastStored = { lat: lat, lon: lon, t: now };
+        }
+        gpsLastFix = { lat: lat, lon: lon, t: now };
+      }
+      updateGpsStatusIcon();
+    } catch (e) {}
+  }
+
+  function onGpsError(err) {
+    gpsStatus = (err && err.code === 1) ? "denied" : "error";
+    updateGpsStatusIcon();
+  }
+
+  function updateGpsStatusIcon() {
+    var el = document.getElementById("gps-status");
+    if (!el) return;
+    if (gpsStatus === "acquiring") { el.textContent = "📍"; el.classList.remove("hidden", "warn"); }
+    else if (gpsStatus === "denied" || gpsStatus === "unavailable" || gpsStatus === "error") { el.textContent = "📍✕"; el.classList.remove("hidden"); el.classList.add("warn"); }
+    else { el.classList.add("hidden"); }
+  }
+
+  function distanceUnitMeters() { return settings.distanceUnit === "km" ? 1000 : METERS_PER_MILE; }
+  function distanceUnitLabel() { return settings.distanceUnit === "km" ? "km" : "mi"; }
+  function paceUnitLabel() { return settings.distanceUnit === "km" ? "/km" : "/mi"; }
+
+  function formatDistance(meters) {
+    return (meters / distanceUnitMeters()).toFixed(2) + " " + distanceUnitLabel();
+  }
+  function formatPace(meters, seconds) {
+    if (meters < 50 || seconds < 20) return "--:-- " + paceUnitLabel();
+    var secPerUnit = seconds / (meters / distanceUnitMeters());
+    if (!isFinite(secPerUnit) || secPerUnit <= 0 || secPerUnit > 3600) return "--:-- " + paceUnitLabel();
+    var m = Math.floor(secPerUnit / 60), s = Math.round(secPerUnit % 60);
+    if (s === 60) { s = 0; m++; }
+    return m + ":" + (s < 10 ? "0" : "") + s + " " + paceUnitLabel();
+  }
+
+  function updateGpsDisplay(elapsedSeconds) {
+    var wrap = document.getElementById("gps-stats");
+    if (!wrap) return;
+    if (!settings.gpsEnabled || !settings.showLiveGps) { wrap.classList.add("hidden"); return; }
+    wrap.classList.remove("hidden");
+    document.getElementById("gps-distance").textContent = formatDistance(gpsDistanceMeters);
+    document.getElementById("gps-pace").textContent = formatPace(gpsDistanceMeters, elapsedSeconds);
+  }
+
+  // A lightweight line-sketch of a route (no map tiles/imagery — keeps the
+  // app self-contained and offline-capable). Green dot = start, orange = finish.
+  function buildRouteSvg(route) {
+    if (!route || route.length < 2) return "";
+    var lats = route.map(function (p) { return p.lat; });
+    var lons = route.map(function (p) { return p.lon; });
+    var minLat = Math.min.apply(null, lats), maxLat = Math.max.apply(null, lats);
+    var minLon = Math.min.apply(null, lons), maxLon = Math.max.apply(null, lons);
+    var cosLat = Math.cos(((minLat + maxLat) / 2) * Math.PI / 180) || 1;
+    var w = 280, h = 160, pad = 14;
+    var spanLon = Math.max((maxLon - minLon) * cosLat, 0.00005);
+    var spanLat = Math.max(maxLat - minLat, 0.00005);
+    var scale = Math.min((w - pad * 2) / spanLon, (h - pad * 2) / spanLat);
+    if (!isFinite(scale) || scale <= 0) scale = 1;
+    var offX = Math.max(0, (w - pad * 2) - spanLon * scale) / 2;
+    var offY = Math.max(0, (h - pad * 2) - spanLat * scale) / 2;
+    function toXY(p) {
+      var x = pad + offX + (p.lon - minLon) * cosLat * scale;
+      var y = pad + offY + (maxLat - p.lat) * scale;
+      return x.toFixed(1) + "," + y.toFixed(1);
+    }
+    var pts = route.map(toXY).join(" ");
+    var start = toXY(route[0]).split(",");
+    var end = toXY(route[route.length - 1]).split(",");
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg">' +
+      '<polyline points="' + pts + '" style="fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;stroke-linejoin:round"/>' +
+      '<circle cx="' + start[0] + '" cy="' + start[1] + '" r="4" style="fill:var(--run)"/>' +
+      '<circle cx="' + end[0] + '" cy="' + end[1] + '" r="4" style="fill:var(--warmup)"/>' +
+      '</svg>';
   }
 
   // ---------------- Pre-rendered workout track ----------------
@@ -1702,6 +1907,7 @@
     if (overallPct >= 50) $overallTrack.classList.add("past-turn");
     else $overallTrack.classList.remove("past-turn");
 
+    updateGpsDisplay(elapsed);
     updateMediaSession(seg.label + " — " + fmtClock(remaining));
   }
 
@@ -1712,17 +1918,24 @@
     state = STATE_DONE;
     stopTicking();
     releaseWakeLock();
+    stopGpsTracking();
     // Do not pause the audio here — let its baked-in completion chime finish.
     var totalSec = Math.round(totalDuration);
     var runSec = segments.reduce(function (s, seg) { return s + (seg.type === "run" ? seg.duration : 0); }, 0);
-    pushHistory({ date: new Date().toISOString(), totalSeconds: totalSec, reps: settings.reps, run: settings.run, walk: settings.walk });
+    var finalDistance = settings.gpsEnabled ? gpsDistanceMeters : 0;
+    var finalRoute = settings.gpsEnabled ? gpsPoints.slice() : null;
+
+    var histEntry = { date: new Date().toISOString(), totalSeconds: totalSec, reps: settings.reps, run: settings.run, walk: settings.walk };
+    if (finalDistance > 0) histEntry.distanceMeters = Math.round(finalDistance);
+    if (finalRoute && finalRoute.length > 1) histEntry.route = finalRoute;
+    pushHistory(histEntry);
 
     // time-of-day flags for Early Bird / Night Owl badges
     var hr = new Date().getHours();
     if (hr < 7) player.earlyFlag = true;
     if (hr >= 20) player.nightFlag = true;
 
-    var base = awardWorkout(totalSec, runSec);        // base XP + streak/stats
+    var base = awardWorkout(totalSec, runSec, finalDistance); // base XP + streak/stats/distance
     var quest = claimQuests();                          // bonus XP from met quests
     var program = advanceProgram();                     // may load next week + set gradFlag
     var badges = checkBadges();                          // unlock newly-earned badges
@@ -1731,9 +1944,10 @@
 
     currentIndex = -1;
     renderIdleOrDone("Workout complete!");
-    document.getElementById("idle-sub").textContent = "Total time: " + fmtClock(totalSec) + " — saved.";
+    document.getElementById("idle-sub").textContent = "Total time: " + fmtClock(totalSec) +
+      (finalDistance > 0 ? " · " + formatDistance(finalDistance) : "") + " — saved.";
     showReward({
-      xpGain: base.xpGain, streak: base.streak,
+      xpGain: base.xpGain, streak: base.streak, distanceMeters: base.distanceMeters,
       leveledUp: afterLevel > base.beforeLevel, level: afterLevel, rank: rankFor(afterLevel),
       questBonus: quest.bonus, quests: quest.quests, badges: badges, program: program
     });
@@ -1746,6 +1960,7 @@
   function showReward(r) {
     var lines = [];
     var first = '<span class="xp-pop">+' + r.xpGain + ' XP</span>';
+    if (r.distanceMeters > 0) first += '  ·  🏃 ' + formatDistance(r.distanceMeters);
     if (r.streak > 1) first += '  ·  🔥 ' + r.streak + '-day streak';
     lines.push(first);
     if (r.questBonus > 0) {
@@ -1782,6 +1997,7 @@
     if (state === STATE_DONE || state === STATE_IDLE) {
       if (segments.length === 0) return;
       currentIndex = -1;
+      startGpsTracking(); // fresh start only — keeps running continuously through pause/resume
       var begin = function () {
         try { $workoutAudio.currentTime = 0; } catch (e) {}
         var p = $workoutAudio.play();
@@ -1826,6 +2042,7 @@
   function resetWorkout() {
     stopTicking();
     releaseWakeLock();
+    stopGpsTracking();
     try { $workoutAudio.pause(); $workoutAudio.currentTime = 0; } catch (e) {}
     state = STATE_IDLE;
     currentIndex = -1;
@@ -1887,9 +2104,12 @@
     $setCooldown.value = settings.cooldown;
     $setVolume.value = settings.volume;
     $setSilent.checked = !!settings.silentOverride;
+    $setGps.checked = !!settings.gpsEnabled;
+    $setGpsLive.checked = !!settings.showLiveGps;
+    $setGpsKm.checked = settings.distanceUnit === "km";
     var locked = state === STATE_RUNNING;
     $settingsLocked.classList.toggle("hidden", !locked);
-    [$setWarmup, $setRun, $setWalk, $setReps, $setCooldown].forEach(function (el) {
+    [$setWarmup, $setRun, $setWalk, $setReps, $setCooldown, $setGps].forEach(function (el) {
       el.disabled = locked;
     });
     var bs = document.getElementById("backup-status"); if (bs) { bs.textContent = ""; bs.className = "setting-hint"; }
@@ -1908,7 +2128,10 @@
     var prevVolume = settings.volume;
     settings.silentOverride = $setSilent.checked;
     settings.volume = clampNum($setVolume.value, 0, 100, DEFAULTS.volume, true);
+    settings.showLiveGps = $setGpsLive.checked;
+    settings.distanceUnit = $setGpsKm.checked ? "km" : "mi";
     if (state !== STATE_RUNNING) {
+      settings.gpsEnabled = $setGps.checked;
       settings.warmup = clampNum($setWarmup.value, 0, 30, DEFAULTS.warmup);
       settings.run = clampNum($setRun.value, 0.25, 30, DEFAULTS.run);
       settings.walk = clampNum($setWalk.value, 0.25, 30, DEFAULTS.walk);
@@ -2218,6 +2441,7 @@
     if (histMap[key]) {
       histMap[key].forEach(function (h) {
         var detail = h.run != null ? " · " + h.reps + "×(" + fmtNum(h.run) + "/" + fmtNum(h.walk) + " min)" : "";
+        if (h.distanceMeters) detail += " · " + formatDistance(h.distanceMeters);
         lines.push('✅ Completed run — ' + fmtClock(h.totalSeconds) + detail);
       });
     }
@@ -2229,6 +2453,19 @@
     }
     var el = document.getElementById("cal-detail");
     el.innerHTML = '<div class="cd-title">' + nice + '</div>' + lines.join('<br>');
+
+    var routeEl = document.getElementById("cal-route");
+    routeEl.innerHTML = "";
+    var withRoute = histMap[key] && histMap[key].filter(function (h) { return h.route && h.route.length > 1; })[0];
+    if (withRoute) {
+      var svg = buildRouteSvg(withRoute.route);
+      if (svg) {
+        var routeWrap = document.createElement("div");
+        routeWrap.id = "route-svg-wrap";
+        routeWrap.innerHTML = svg + '<div class="route-caption">Route sketch (shape only, not to map scale)</div>';
+        routeEl.appendChild(routeWrap);
+      }
+    }
 
     var bballBtn = document.createElement("button");
     bballBtn.className = "test-btn"; bballBtn.style.marginTop = "10px"; bballBtn.style.width = "100%";
@@ -2318,6 +2555,7 @@
     calSelectedKey = null;
     suggestShuffledOut = {};
     document.getElementById("cal-detail").textContent = "Tap a day to see what you did or what’s planned.";
+    document.getElementById("cal-route").innerHTML = "";
     renderDayPicker();
     renderSuggestions();
     renderCalendar();
