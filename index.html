@@ -607,8 +607,9 @@
   .poke-sprite {
     width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.7rem; line-height: 1;
+    font-size: 1.7rem; line-height: 1; overflow: hidden;
   }
+  .poke-sprite-img { width: 100%; height: 100%; object-fit: contain; }
   .poke-sprite.small { width: 40px; height: 40px; font-size: 1.3rem; }
   .poke-sprite.big { width: 72px; height: 72px; font-size: 2.3rem; margin: 0 auto 8px; }
   .poke-sprite.locked-sprite { background: var(--border) !important; opacity: 0.5; filter: grayscale(1); }
@@ -1064,38 +1065,38 @@
   // third-party dependencies, so creatures render as styled type-badge
   // emoji instead of fetched artwork.
   var POKEDEX = [
-    { id: "bulbasaur", name: "Bulbasaur", types: ["grass", "poison"], rarity: "common", sprite: "🌱",
+    { id: "bulbasaur", dexId: 1, name: "Bulbasaur", types: ["grass", "poison"], rarity: "common", sprite: "🌱",
       baseStats: { hp: 45, attack: 49, defense: 49, spAtk: 65, spDef: 65, speed: 45 }, evolutionLevel: 16, evolveInto: "ivysaur" },
-    { id: "ivysaur", name: "Ivysaur", types: ["grass", "poison"], rarity: "common", sprite: "🌿",
+    { id: "ivysaur", dexId: 2, name: "Ivysaur", types: ["grass", "poison"], rarity: "common", sprite: "🌿",
       baseStats: { hp: 60, attack: 62, defense: 63, spAtk: 80, spDef: 80, speed: 60 }, evolutionLevel: 32, evolveInto: "venusaur" },
-    { id: "venusaur", name: "Venusaur", types: ["grass", "poison"], rarity: "uncommon", sprite: "🌳",
+    { id: "venusaur", dexId: 3, name: "Venusaur", types: ["grass", "poison"], rarity: "uncommon", sprite: "🌳",
       baseStats: { hp: 80, attack: 82, defense: 83, spAtk: 100, spDef: 100, speed: 80 }, evolutionLevel: null, evolveInto: null },
 
-    { id: "charmander", name: "Charmander", types: ["fire"], rarity: "common", sprite: "🦎",
+    { id: "charmander", dexId: 4, name: "Charmander", types: ["fire"], rarity: "common", sprite: "🦎",
       baseStats: { hp: 39, attack: 52, defense: 43, spAtk: 60, spDef: 50, speed: 65 }, evolutionLevel: 16, evolveInto: "charmeleon" },
-    { id: "charmeleon", name: "Charmeleon", types: ["fire"], rarity: "common", sprite: "🔥",
+    { id: "charmeleon", dexId: 5, name: "Charmeleon", types: ["fire"], rarity: "common", sprite: "🔥",
       baseStats: { hp: 58, attack: 64, defense: 58, spAtk: 80, spDef: 65, speed: 80 }, evolutionLevel: 36, evolveInto: "charizard" },
-    { id: "charizard", name: "Charizard", types: ["fire", "flying"], rarity: "uncommon", sprite: "🐉",
+    { id: "charizard", dexId: 6, name: "Charizard", types: ["fire", "flying"], rarity: "uncommon", sprite: "🐉",
       baseStats: { hp: 78, attack: 84, defense: 78, spAtk: 109, spDef: 85, speed: 100 }, evolutionLevel: null, evolveInto: null },
 
-    { id: "squirtle", name: "Squirtle", types: ["water"], rarity: "common", sprite: "🐢",
+    { id: "squirtle", dexId: 7, name: "Squirtle", types: ["water"], rarity: "common", sprite: "🐢",
       baseStats: { hp: 44, attack: 48, defense: 65, spAtk: 50, spDef: 64, speed: 43 }, evolutionLevel: 16, evolveInto: "wartortle" },
-    { id: "wartortle", name: "Wartortle", types: ["water"], rarity: "common", sprite: "🐢",
+    { id: "wartortle", dexId: 8, name: "Wartortle", types: ["water"], rarity: "common", sprite: "🐢",
       baseStats: { hp: 59, attack: 63, defense: 80, spAtk: 65, spDef: 80, speed: 58 }, evolutionLevel: 36, evolveInto: "blastoise" },
-    { id: "blastoise", name: "Blastoise", types: ["water"], rarity: "uncommon", sprite: "🐢",
+    { id: "blastoise", dexId: 9, name: "Blastoise", types: ["water"], rarity: "uncommon", sprite: "🐢",
       baseStats: { hp: 79, attack: 83, defense: 100, spAtk: 85, spDef: 105, speed: 78 }, evolutionLevel: null, evolveInto: null },
 
-    { id: "pidgeot", name: "Pidgeot", types: ["normal", "flying"], rarity: "uncommon", sprite: "🦅",
+    { id: "pidgeot", dexId: 18, name: "Pidgeot", types: ["normal", "flying"], rarity: "uncommon", sprite: "🦅",
       baseStats: { hp: 83, attack: 80, defense: 75, spAtk: 70, spDef: 70, speed: 101 }, evolutionLevel: null, evolveInto: null },
-    { id: "pikachu", name: "Pikachu", types: ["electric"], rarity: "rare", sprite: "⚡",
+    { id: "pikachu", dexId: 25, name: "Pikachu", types: ["electric"], rarity: "rare", sprite: "⚡",
       baseStats: { hp: 35, attack: 55, defense: 40, spAtk: 50, spDef: 50, speed: 90 }, evolutionLevel: null, evolveInto: null },
-    { id: "dragonair", name: "Dragonair", types: ["dragon"], rarity: "rare", sprite: "🐍",
+    { id: "dragonair", dexId: 148, name: "Dragonair", types: ["dragon"], rarity: "rare", sprite: "🐍",
       baseStats: { hp: 61, attack: 84, defense: 65, spAtk: 70, spDef: 70, speed: 70 }, evolutionLevel: null, evolveInto: null },
-    { id: "gyarados", name: "Gyarados", types: ["water", "flying"], rarity: "legendary", sprite: "🐟",
+    { id: "gyarados", dexId: 130, name: "Gyarados", types: ["water", "flying"], rarity: "legendary", sprite: "🐟",
       baseStats: { hp: 95, attack: 125, defense: 79, spAtk: 60, spDef: 100, speed: 81 }, evolutionLevel: null, evolveInto: null },
-    { id: "dragonite", name: "Dragonite", types: ["dragon", "flying"], rarity: "legendary", sprite: "🐉",
+    { id: "dragonite", dexId: 149, name: "Dragonite", types: ["dragon", "flying"], rarity: "legendary", sprite: "🐉",
       baseStats: { hp: 91, attack: 134, defense: 95, spAtk: 100, spDef: 100, speed: 80 }, evolutionLevel: null, evolveInto: null },
-    { id: "snorlax", name: "Snorlax", types: ["normal"], rarity: "legendary", sprite: "😴",
+    { id: "snorlax", dexId: 143, name: "Snorlax", types: ["normal"], rarity: "legendary", sprite: "😴",
       baseStats: { hp: 160, attack: 110, defense: 65, spAtk: 65, spDef: 110, speed: 30 }, evolutionLevel: null, evolveInto: null }
   ];
   var POKEDEX_BY_ID = {};
@@ -1222,6 +1223,26 @@
     return types.map(function (t) { return '<span class="type-badge type-' + t + '">' + t + '</span>'; }).join("");
   }
 
+  // Live-linked sprites from PokeAPI's own sprite hosting (pinned to a fixed
+  // commit for stability) — not copied into this repo. If a fetch ever fails
+  // (offline, host down), we fall back to the emoji rather than a broken image.
+  var SPRITE_BASE = "https://raw.githubusercontent.com/PokeAPI/sprites/bf4c47ac82c33b330e33d98b8882d1cedb2f53e7/sprites/pokemon/other/official-artwork/";
+  function spriteUrl(species) { return SPRITE_BASE + species.dexId + ".png"; }
+  function spriteMarkup(species, extraClass) {
+    return '<div class="poke-sprite' + (extraClass ? " " + extraClass : "") + '" data-emoji="' + species.sprite + '" style="background:' + typeColor(species.types[0]) + '">' +
+      '<img class="poke-sprite-img" src="' + spriteUrl(species) + '" alt="' + species.name + '" loading="lazy">' +
+      '</div>';
+  }
+  function wireSpriteFallbacks(root) {
+    root.querySelectorAll(".poke-sprite-img").forEach(function (img) {
+      img.addEventListener("error", function () {
+        var wrap = img.closest(".poke-sprite");
+        img.remove();
+        if (wrap) wrap.textContent = wrap.getAttribute("data-emoji") || "❔";
+      }, { once: true });
+    });
+  }
+
   function showCharTab(tab) {
     document.getElementById("tab-btn-team").classList.toggle("on", tab === "team");
     document.getElementById("tab-btn-quests").classList.toggle("on", tab === "quests");
@@ -1243,7 +1264,7 @@
       var card = document.createElement("div");
       card.className = "starter-card";
       card.innerHTML =
-        '<div class="poke-sprite big" style="background:' + typeColor(species.types[0]) + '">' + species.sprite + '</div>' +
+        spriteMarkup(species, "big") +
         '<div class="starter-name">' + species.name + '</div>' +
         '<div class="poke-types">' + typeBadges(species.types) + '</div>' +
         '<div class="starter-desc">' + (STARTER_FLAVOR[id] || "") + '</div>';
@@ -1252,6 +1273,7 @@
       btn.textContent = "Choose " + species.name;
       btn.addEventListener("click", function () { selectStarter(id); renderTeamTab(); updateLevelBadge(); });
       card.appendChild(btn);
+      wireSpriteFallbacks(card);
       wrap.appendChild(card);
     });
   }
@@ -1267,7 +1289,7 @@
       var card = document.createElement("div");
       card.className = "poke-card" + (idx === 0 ? " lead" : "");
       card.innerHTML =
-        '<div class="poke-sprite" style="background:' + typeColor(species.types[0]) + '">' + species.sprite + '</div>' +
+        spriteMarkup(species) +
         '<div class="poke-info">' +
           '<div class="poke-name">' + species.name + ' <span class="poke-lv">Lv ' + member.level + '</span>' +
           (idx === 0 ? '<span class="poke-lead-tag">LEAD</span>' : '') + '</div>' +
@@ -1291,6 +1313,7 @@
         actions.appendChild(rmBtn);
       }
       card.appendChild(actions);
+      wireSpriteFallbacks(card);
       wrap.appendChild(card);
     });
   }
@@ -1305,10 +1328,8 @@
         var onTeam = pokemonState.team.some(function (m) { return m.id === id; });
         var card = document.createElement("div");
         card.className = "dex-card" + (unlocked ? " unlocked" : " locked");
-        var spriteStyle = unlocked ? 'background:' + typeColor(species.types[0]) : '';
-        var spriteClass = "poke-sprite small" + (unlocked ? "" : " locked-sprite");
         card.innerHTML =
-          '<div class="' + spriteClass + '" style="' + spriteStyle + '">' + species.sprite + '</div>' +
+          spriteMarkup(species, "small" + (unlocked ? "" : " locked-sprite")) +
           '<div class="dex-info">' +
             '<div class="dex-name">' + species.name + '</div>' +
             '<div class="poke-types">' + typeBadges(species.types) + '</div>' +
@@ -1323,6 +1344,7 @@
           else { btn.textContent = "+ Add"; btn.addEventListener("click", function () { addToTeam(id); renderTeamTab(); }); }
           card.appendChild(btn);
         }
+        wireSpriteFallbacks(card);
         wrap.appendChild(card);
       });
     });
