@@ -622,6 +622,10 @@
   .type-grass { background: #78C850; } .type-electric { background: #E8C020; color:#1a1a1a; }
   .type-normal { background: #A8A878; } .type-flying { background: #A890F0; }
   .type-dragon { background: #7038F8; } .type-poison { background: #A040A0; }
+  .type-psychic { background: #F85888; } .type-ghost { background: #705898; }
+  .type-fighting { background: #C03028; } .type-rock { background: #B8A038; }
+  .type-ground { background: #E0C068; color:#1a1a1a; } .type-ice { background: #98D8D8; color:#1a1a1a; }
+  .type-bug { background: #A8B820; color:#1a1a1a; }
 
   .rarity-tag { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; }
   .rarity-common { color: var(--text-dim); }
@@ -1097,7 +1101,141 @@
     { id: "dragonite", dexId: 149, name: "Dragonite", types: ["dragon", "flying"], rarity: "legendary", sprite: "🐉",
       baseStats: { hp: 91, attack: 134, defense: 95, spAtk: 100, spDef: 100, speed: 80 }, evolutionLevel: null, evolveInto: null },
     { id: "snorlax", dexId: 143, name: "Snorlax", types: ["normal"], rarity: "legendary", sprite: "😴",
-      baseStats: { hp: 160, attack: 110, defense: 65, spAtk: 65, spDef: 110, speed: 30 }, evolutionLevel: null, evolveInto: null }
+      baseStats: { hp: 160, attack: 110, defense: 65, spAtk: 65, spDef: 110, speed: 30 }, evolutionLevel: null, evolveInto: null },
+
+    // ---- Roster expansion (all evolutions level-based by design — this app
+    // has no stone/trade mechanic, so several real-game stone/trade
+    // evolutions below use a level substitute instead) ----
+    { id: "jigglypuff", dexId: 39, name: "Jigglypuff", types: ["normal"], rarity: "common", sprite: "🎤",
+      baseStats: { hp: 115, attack: 45, defense: 20, spAtk: 25, spDef: 25, speed: 20 }, evolutionLevel: 25, evolveInto: "wigglytuff" },
+    { id: "wigglytuff", dexId: 40, name: "Wigglytuff", types: ["normal"], rarity: "uncommon", sprite: "🎀",
+      baseStats: { hp: 140, attack: 70, defense: 45, spAtk: 75, spDef: 75, speed: 45 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "meowth", dexId: 52, name: "Meowth", types: ["normal"], rarity: "common", sprite: "🐱",
+      baseStats: { hp: 40, attack: 45, defense: 35, spAtk: 40, spDef: 40, speed: 90 }, evolutionLevel: 28, evolveInto: "persian" },
+    { id: "persian", dexId: 53, name: "Persian", types: ["normal"], rarity: "uncommon", sprite: "😼",
+      baseStats: { hp: 65, attack: 70, defense: 60, spAtk: 65, spDef: 65, speed: 115 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "growlithe", dexId: 58, name: "Growlithe", types: ["fire"], rarity: "common", sprite: "🐶",
+      baseStats: { hp: 55, attack: 70, defense: 45, spAtk: 70, spDef: 50, speed: 60 }, evolutionLevel: 30, evolveInto: "arcanine" },
+    { id: "arcanine", dexId: 59, name: "Arcanine", types: ["fire"], rarity: "rare", sprite: "🐕‍🦺",
+      baseStats: { hp: 90, attack: 110, defense: 80, spAtk: 100, spDef: 80, speed: 95 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "bellsprout", dexId: 69, name: "Bellsprout", types: ["grass", "poison"], rarity: "common", sprite: "🌾",
+      baseStats: { hp: 50, attack: 75, defense: 35, spAtk: 70, spDef: 30, speed: 40 }, evolutionLevel: 21, evolveInto: "weepinbell" },
+    { id: "weepinbell", dexId: 70, name: "Weepinbell", types: ["grass", "poison"], rarity: "uncommon", sprite: "🪴",
+      baseStats: { hp: 65, attack: 90, defense: 50, spAtk: 85, spDef: 45, speed: 55 }, evolutionLevel: 30, evolveInto: "victreebel" },
+    { id: "victreebel", dexId: 71, name: "Victreebel", types: ["grass", "poison"], rarity: "rare", sprite: "🌺",
+      baseStats: { hp: 80, attack: 105, defense: 65, spAtk: 100, spDef: 70, speed: 70 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "oddish", dexId: 43, name: "Oddish", types: ["grass", "poison"], rarity: "common", sprite: "🍄",
+      baseStats: { hp: 45, attack: 50, defense: 55, spAtk: 75, spDef: 65, speed: 30 }, evolutionLevel: 21, evolveInto: "gloom" },
+    { id: "gloom", dexId: 44, name: "Gloom", types: ["grass", "poison"], rarity: "uncommon", sprite: "🌼",
+      baseStats: { hp: 60, attack: 65, defense: 70, spAtk: 85, spDef: 75, speed: 40 }, evolutionLevel: 30, evolveInto: "vileplume" },
+    { id: "vileplume", dexId: 45, name: "Vileplume", types: ["grass", "poison"], rarity: "rare", sprite: "🌸",
+      baseStats: { hp: 75, attack: 80, defense: 85, spAtk: 110, spDef: 90, speed: 50 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "psyduck", dexId: 54, name: "Psyduck", types: ["water"], rarity: "common", sprite: "🦆",
+      baseStats: { hp: 50, attack: 52, defense: 48, spAtk: 65, spDef: 50, speed: 55 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "mankey", dexId: 56, name: "Mankey", types: ["fighting"], rarity: "common", sprite: "🐒",
+      baseStats: { hp: 40, attack: 80, defense: 35, spAtk: 35, spDef: 45, speed: 70 }, evolutionLevel: 28, evolveInto: "primeape" },
+    { id: "primeape", dexId: 57, name: "Primeape", types: ["fighting"], rarity: "uncommon", sprite: "🦍",
+      baseStats: { hp: 65, attack: 105, defense: 60, spAtk: 60, spDef: 70, speed: 95 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "tentacool", dexId: 72, name: "Tentacool", types: ["water", "poison"], rarity: "common", sprite: "🪼",
+      baseStats: { hp: 40, attack: 40, defense: 35, spAtk: 50, spDef: 100, speed: 70 }, evolutionLevel: 30, evolveInto: "tentacruel" },
+    { id: "tentacruel", dexId: 73, name: "Tentacruel", types: ["water", "poison"], rarity: "uncommon", sprite: "🐙",
+      baseStats: { hp: 80, attack: 70, defense: 65, spAtk: 80, spDef: 120, speed: 100 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "shellder", dexId: 90, name: "Shellder", types: ["water"], rarity: "uncommon", sprite: "🐚",
+      baseStats: { hp: 30, attack: 65, defense: 100, spAtk: 45, spDef: 25, speed: 40 }, evolutionLevel: 30, evolveInto: "cloyster" },
+    { id: "cloyster", dexId: 91, name: "Cloyster", types: ["water", "ice"], rarity: "rare", sprite: "❄️",
+      baseStats: { hp: 50, attack: 95, defense: 180, spAtk: 85, spDef: 45, speed: 70 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "horsea", dexId: 116, name: "Horsea", types: ["water"], rarity: "uncommon", sprite: "🐠",
+      baseStats: { hp: 30, attack: 40, defense: 70, spAtk: 70, spDef: 25, speed: 60 }, evolutionLevel: 32, evolveInto: "seadra" },
+    { id: "seadra", dexId: 117, name: "Seadra", types: ["water"], rarity: "rare", sprite: "🐡",
+      baseStats: { hp: 55, attack: 65, defense: 95, spAtk: 95, spDef: 45, speed: 85 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "goldeen", dexId: 118, name: "Goldeen", types: ["water"], rarity: "uncommon", sprite: "🐠",
+      baseStats: { hp: 45, attack: 67, defense: 60, spAtk: 35, spDef: 50, speed: 63 }, evolutionLevel: 33, evolveInto: "seaking" },
+    { id: "seaking", dexId: 119, name: "Seaking", types: ["water"], rarity: "uncommon", sprite: "🐟",
+      baseStats: { hp: 80, attack: 92, defense: 65, spAtk: 65, spDef: 80, speed: 68 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "staryu", dexId: 120, name: "Staryu", types: ["water"], rarity: "uncommon", sprite: "⭐",
+      baseStats: { hp: 30, attack: 45, defense: 55, spAtk: 70, spDef: 55, speed: 85 }, evolutionLevel: 30, evolveInto: "starmie" },
+    { id: "starmie", dexId: 121, name: "Starmie", types: ["water", "psychic"], rarity: "rare", sprite: "🌟",
+      baseStats: { hp: 60, attack: 75, defense: 85, spAtk: 100, spDef: 85, speed: 115 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "diglett", dexId: 50, name: "Diglett", types: ["ground"], rarity: "common", sprite: "🕳️",
+      baseStats: { hp: 10, attack: 55, defense: 25, spAtk: 35, spDef: 45, speed: 95 }, evolutionLevel: 26, evolveInto: "dugtrio" },
+    { id: "dugtrio", dexId: 51, name: "Dugtrio", types: ["ground"], rarity: "uncommon", sprite: "🕳️",
+      baseStats: { hp: 35, attack: 100, defense: 50, spAtk: 50, spDef: 70, speed: 120 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "abra", dexId: 63, name: "Abra", types: ["psychic"], rarity: "uncommon", sprite: "🧘",
+      baseStats: { hp: 25, attack: 20, defense: 15, spAtk: 105, spDef: 55, speed: 90 }, evolutionLevel: 16, evolveInto: "kadabra" },
+    { id: "kadabra", dexId: 64, name: "Kadabra", types: ["psychic"], rarity: "rare", sprite: "🔮",
+      baseStats: { hp: 40, attack: 35, defense: 30, spAtk: 120, spDef: 70, speed: 105 }, evolutionLevel: 36, evolveInto: "alakazam" },
+    { id: "alakazam", dexId: 65, name: "Alakazam", types: ["psychic"], rarity: "rare", sprite: "🌀",
+      baseStats: { hp: 55, attack: 50, defense: 45, spAtk: 135, spDef: 95, speed: 120 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "venonat", dexId: 48, name: "Venonat", types: ["bug", "poison"], rarity: "uncommon", sprite: "🦟",
+      baseStats: { hp: 60, attack: 55, defense: 50, spAtk: 40, spDef: 55, speed: 45 }, evolutionLevel: 31, evolveInto: "venomoth" },
+    { id: "venomoth", dexId: 49, name: "Venomoth", types: ["bug", "poison"], rarity: "rare", sprite: "🦋",
+      baseStats: { hp: 70, attack: 65, defense: 60, spAtk: 90, spDef: 75, speed: 90 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "grimer", dexId: 88, name: "Grimer", types: ["poison"], rarity: "uncommon", sprite: "🟣",
+      baseStats: { hp: 80, attack: 80, defense: 50, spAtk: 40, spDef: 50, speed: 25 }, evolutionLevel: 38, evolveInto: "muk" },
+    { id: "muk", dexId: 89, name: "Muk", types: ["poison"], rarity: "rare", sprite: "🟪",
+      baseStats: { hp: 105, attack: 105, defense: 75, spAtk: 65, spDef: 100, speed: 50 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "onix", dexId: 95, name: "Onix", types: ["rock", "ground"], rarity: "uncommon", sprite: "🪨",
+      baseStats: { hp: 35, attack: 45, defense: 160, spAtk: 30, spDef: 45, speed: 70 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "rhyhorn", dexId: 111, name: "Rhyhorn", types: ["ground", "rock"], rarity: "uncommon", sprite: "🦏",
+      baseStats: { hp: 80, attack: 85, defense: 95, spAtk: 30, spDef: 30, speed: 25 }, evolutionLevel: 42, evolveInto: "rhydon" },
+    { id: "rhydon", dexId: 112, name: "Rhydon", types: ["ground", "rock"], rarity: "rare", sprite: "🦏",
+      baseStats: { hp: 105, attack: 130, defense: 120, spAtk: 45, spDef: 45, speed: 40 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "cubone", dexId: 104, name: "Cubone", types: ["ground"], rarity: "uncommon", sprite: "🦴",
+      baseStats: { hp: 50, attack: 50, defense: 95, spAtk: 40, spDef: 50, speed: 35 }, evolutionLevel: 28, evolveInto: "marowak" },
+    { id: "marowak", dexId: 105, name: "Marowak", types: ["ground"], rarity: "rare", sprite: "🥋",
+      baseStats: { hp: 60, attack: 80, defense: 110, spAtk: 50, spDef: 80, speed: 45 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "ditto", dexId: 132, name: "Ditto", types: ["normal"], rarity: "rare", sprite: "🟢",
+      baseStats: { hp: 48, attack: 48, defense: 48, spAtk: 48, spDef: 48, speed: 48 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "gastly", dexId: 92, name: "Gastly", types: ["ghost", "poison"], rarity: "rare", sprite: "👻",
+      baseStats: { hp: 30, attack: 35, defense: 30, spAtk: 100, spDef: 35, speed: 80 }, evolutionLevel: 25, evolveInto: "haunter" },
+    { id: "haunter", dexId: 93, name: "Haunter", types: ["ghost", "poison"], rarity: "rare", sprite: "👻",
+      baseStats: { hp: 45, attack: 50, defense: 45, spAtk: 115, spDef: 55, speed: 95 }, evolutionLevel: 45, evolveInto: "gengar" },
+    { id: "gengar", dexId: 94, name: "Gengar", types: ["ghost", "poison"], rarity: "legendary", sprite: "😈",
+      baseStats: { hp: 60, attack: 65, defense: 60, spAtk: 130, spDef: 75, speed: 110 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "lapras", dexId: 131, name: "Lapras", types: ["water", "ice"], rarity: "legendary", sprite: "🐳",
+      baseStats: { hp: 130, attack: 85, defense: 80, spAtk: 85, spDef: 95, speed: 60 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "machop", dexId: 66, name: "Machop", types: ["fighting"], rarity: "uncommon", sprite: "💪",
+      baseStats: { hp: 70, attack: 80, defense: 50, spAtk: 35, spDef: 35, speed: 35 }, evolutionLevel: 28, evolveInto: "machoke" },
+    { id: "machoke", dexId: 67, name: "Machoke", types: ["fighting"], rarity: "rare", sprite: "🏋️",
+      baseStats: { hp: 80, attack: 100, defense: 70, spAtk: 50, spDef: 60, speed: 45 }, evolutionLevel: 36, evolveInto: "machamp" },
+    { id: "machamp", dexId: 68, name: "Machamp", types: ["fighting"], rarity: "rare", sprite: "🥊",
+      baseStats: { hp: 90, attack: 130, defense: 80, spAtk: 65, spDef: 85, speed: 55 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "magnemite", dexId: 81, name: "Magnemite", types: ["electric"], rarity: "uncommon", sprite: "🧲",
+      baseStats: { hp: 25, attack: 35, defense: 70, spAtk: 95, spDef: 55, speed: 45 }, evolutionLevel: 30, evolveInto: "magneton" },
+    { id: "magneton", dexId: 82, name: "Magneton", types: ["electric"], rarity: "rare", sprite: "🧲",
+      baseStats: { hp: 50, attack: 60, defense: 95, spAtk: 120, spDef: 70, speed: 70 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "articuno", dexId: 144, name: "Articuno", types: ["ice", "flying"], rarity: "legendary", sprite: "🧊",
+      baseStats: { hp: 90, attack: 85, defense: 100, spAtk: 95, spDef: 125, speed: 85 }, evolutionLevel: null, evolveInto: null },
+    { id: "zapdos", dexId: 145, name: "Zapdos", types: ["electric", "flying"], rarity: "legendary", sprite: "⚡",
+      baseStats: { hp: 90, attack: 90, defense: 85, spAtk: 125, spDef: 90, speed: 100 }, evolutionLevel: null, evolveInto: null },
+    { id: "moltres", dexId: 146, name: "Moltres", types: ["fire", "flying"], rarity: "legendary", sprite: "🔥",
+      baseStats: { hp: 90, attack: 100, defense: 90, spAtk: 125, spDef: 85, speed: 90 }, evolutionLevel: null, evolveInto: null },
+    { id: "mewtwo", dexId: 150, name: "Mewtwo", types: ["psychic"], rarity: "legendary", sprite: "🧠",
+      baseStats: { hp: 106, attack: 110, defense: 90, spAtk: 154, spDef: 90, speed: 130 }, evolutionLevel: null, evolveInto: null }
   ];
   var POKEDEX_BY_ID = {};
   POKEDEX.forEach(function (p) { POKEDEX_BY_ID[p.id] = p; });
@@ -1115,7 +1253,38 @@
     { id: "five_km", label: "Run 5 km total", unlockIds: ["pikachu"], check: function (p) { return (p.totalDistanceMeters || 0) >= 5000; } },
     { id: "ten_runs", label: "Complete 10 runs", unlockIds: ["dragonair"], check: function (p) { return p.workouts >= 10; } },
     { id: "fifty_km", label: "Run 50 km total", unlockIds: ["gyarados", "dragonite"], check: function (p) { return (p.totalDistanceMeters || 0) >= 50000; } },
-    { id: "perfect_week", label: "Run 7 consecutive days", unlockIds: ["snorlax"], check: function (p) { return (p.bestStreak || 0) >= 7; } }
+    { id: "perfect_week", label: "Run 7 consecutive days", unlockIds: ["snorlax"], check: function (p) { return (p.bestStreak || 0) >= 7; } },
+
+    // ---- Roster expansion ----
+    { id: "workouts_5", label: "Complete 5 workouts", unlockIds: ["jigglypuff"], check: function (p) { return p.workouts >= 5; } },
+    { id: "workouts_8", label: "Complete 8 workouts", unlockIds: ["psyduck"], check: function (p) { return p.workouts >= 8; } },
+    { id: "workouts_10b", label: "Complete 10 workouts", unlockIds: ["meowth"], check: function (p) { return p.workouts >= 10; } },
+    { id: "workouts_15", label: "Complete 15 workouts", unlockIds: ["horsea"], check: function (p) { return p.workouts >= 15; } },
+    { id: "workouts_20", label: "Complete 20 workouts", unlockIds: ["mankey"], check: function (p) { return p.workouts >= 20; } },
+    { id: "workouts_25", label: "Complete 25 workouts", unlockIds: ["abra"], check: function (p) { return p.workouts >= 25; } },
+    { id: "workouts_30", label: "Complete 30 workouts", unlockIds: ["staryu"], check: function (p) { return p.workouts >= 30; } },
+    { id: "workouts_35", label: "Complete 35 workouts", unlockIds: ["cubone"], check: function (p) { return p.workouts >= 35; } },
+    { id: "workouts_40", label: "Complete 40 workouts", unlockIds: ["grimer"], check: function (p) { return p.workouts >= 40; } },
+    { id: "workouts_50", label: "Complete 50 workouts", unlockIds: ["magnemite"], check: function (p) { return p.workouts >= 50; } },
+    { id: "distance_15k", label: "Run 15 km total", unlockIds: ["bellsprout"], check: function (p) { return (p.totalDistanceMeters || 0) >= 15000; } },
+    { id: "distance_20k", label: "Run 20 km total", unlockIds: ["tentacool"], check: function (p) { return (p.totalDistanceMeters || 0) >= 20000; } },
+    { id: "distance_30k", label: "Run 30 km total", unlockIds: ["diglett"], check: function (p) { return (p.totalDistanceMeters || 0) >= 30000; } },
+    { id: "distance_45k", label: "Run 45 km total", unlockIds: ["venonat"], check: function (p) { return (p.totalDistanceMeters || 0) >= 45000; } },
+    { id: "distance_75k", label: "Run 75 km total", unlockIds: ["rhyhorn"], check: function (p) { return (p.totalDistanceMeters || 0) >= 75000; } },
+    { id: "distance_100k", label: "Run 100 km total", unlockIds: ["onix"], check: function (p) { return (p.totalDistanceMeters || 0) >= 100000; } },
+    { id: "distance_150k", label: "Run 150 km total", unlockIds: ["lapras"], check: function (p) { return (p.totalDistanceMeters || 0) >= 150000; } },
+    { id: "best_run_10k", label: "Run 10 km in a single workout", unlockIds: ["shellder"], check: function (p) { return (p.bestRunDistanceMeters || 0) >= 10000; } },
+    { id: "streak_3", label: "Reach a 3-day streak", unlockIds: ["oddish"], check: function (p) { return (p.bestStreak || 0) >= 3; } },
+    { id: "streak_10", label: "Reach a 10-day streak", unlockIds: ["goldeen"], check: function (p) { return (p.bestStreak || 0) >= 10; } },
+    { id: "streak_60", label: "Reach a 60-day streak", unlockIds: ["gastly"], check: function (p) { return (p.bestStreak || 0) >= 60; } },
+    { id: "streak_90", label: "Reach a 90-day streak", unlockIds: ["articuno"], check: function (p) { return (p.bestStreak || 0) >= 90; } },
+    { id: "program_graduate", label: "Complete the walk-to-run program", unlockIds: ["growlithe"], check: function (p) { return !!p.gradFlag; } },
+    { id: "cross_train_10", label: "Log 10 basketball/cross-training days", unlockIds: ["machop"], check: function () { return bballLoggedCount() >= 10; } },
+    { id: "run_hours_50", label: "Log 50 hours in the run phase", unlockIds: ["moltres"], check: function (p) { return (p.totalRunSeconds || 0) >= 180000; } },
+    { id: "dual_gate_100k_50", label: "Run 100 km total and complete 50 workouts", unlockIds: ["zapdos"], check: function (p) { return (p.totalDistanceMeters || 0) >= 100000 && p.workouts >= 50; } },
+    { id: "active_days_180", label: "Log 180 active days (running or cross-training)", unlockIds: ["mewtwo"], check: function () { return Object.keys(activeDaySet()).length >= 180; } },
+    // Checked last so it can fire in the same batch as whatever unlock just crossed the 15th Pokémon.
+    { id: "collector_15", label: "Unlock 15 other Pokémon", unlockIds: ["ditto"], check: function () { return pokemonState.unlockedIds.length >= 15; } }
   ];
 
   var POKEMON_KEY = "rwPokemon";
@@ -1216,7 +1385,9 @@
 
   function typeColor(type) {
     var map = { fire: "#F08030", water: "#6890F0", grass: "#78C850", electric: "#E8C020",
-      normal: "#A8A878", flying: "#A890F0", dragon: "#7038F8", poison: "#A040A0" };
+      normal: "#A8A878", flying: "#A890F0", dragon: "#7038F8", poison: "#A040A0",
+      psychic: "#F85888", ghost: "#705898", fighting: "#C03028", rock: "#B8A038",
+      ground: "#E0C068", ice: "#98D8D8", bug: "#A8B820" };
     return map[type] || "#A8A878";
   }
   function typeBadges(types) {
