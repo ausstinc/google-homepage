@@ -539,28 +539,6 @@
   .empty-note { font-size: 0.85rem; color: var(--text-dim); padding: 4px 2px 8px; }
 
   /* Character / profile */
-  #char-header { text-align: center; padding: 6px 0 2px; }
-  #char-level { font-size: 3rem; font-weight: 800; line-height: 1; }
-  #char-rank { font-size: 1.1rem; font-weight: 700; color: var(--accent); margin-top: 2px; }
-  #char-xp-track {
-    height: 14px;
-    background: var(--border);
-    border-radius: 999px;
-    overflow: hidden;
-    margin: 14px 0 4px;
-  }
-  #char-xp-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 999px; transition: width 0.4s ease; }
-  #char-xp-text { font-size: 0.8rem; color: var(--text-dim); text-align: center; }
-  .attr-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 10px 0;
-  }
-  .attr-row .attr-name { width: 84px; font-size: 0.85rem; font-weight: 700; }
-  .attr-row .attr-track { flex: 1; height: 10px; background: var(--border); border-radius: 999px; overflow: hidden; }
-  .attr-row .attr-track > span { display: block; height: 100%; border-radius: 999px; }
-  .attr-row .attr-val { width: 30px; text-align: right; font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
   #char-stats {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -616,6 +594,91 @@
   .badge.unlocked .badge-name { color: var(--text); font-weight: 700; }
   #reward-line .badge-pop { color: var(--warmup); }
   #reward-line .quest-pop { color: var(--run); }
+  #reward-line .evo-pop { color: var(--accent); }
+
+  /* Pokémon team */
+  #char-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .char-tab {
+    flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text-dim); font-weight: 700; font-size: 0.85rem; cursor: pointer;
+  }
+  .char-tab.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .poke-sprite {
+    width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.7rem; line-height: 1;
+  }
+  .poke-sprite.small { width: 40px; height: 40px; font-size: 1.3rem; }
+  .poke-sprite.big { width: 72px; height: 72px; font-size: 2.3rem; margin: 0 auto 8px; }
+  .poke-sprite.locked-sprite { background: var(--border) !important; opacity: 0.5; filter: grayscale(1); }
+
+  .type-badge {
+    display: inline-block; font-size: 0.62rem; font-weight: 800; text-transform: uppercase;
+    color: #fff; padding: 2px 7px; border-radius: 999px; margin: 2px 3px 2px 0;
+  }
+  .type-fire { background: #F08030; } .type-water { background: #6890F0; }
+  .type-grass { background: #78C850; } .type-electric { background: #E8C020; color:#1a1a1a; }
+  .type-normal { background: #A8A878; } .type-flying { background: #A890F0; }
+  .type-dragon { background: #7038F8; } .type-poison { background: #A040A0; }
+
+  .rarity-tag { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; }
+  .rarity-common { color: var(--text-dim); }
+  .rarity-uncommon { color: var(--run); }
+  .rarity-rare { color: var(--walk); }
+  .rarity-legendary { color: var(--warmup); }
+
+  .poke-card {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
+    padding: 10px; margin-bottom: 8px;
+  }
+  .poke-card.lead { border-color: var(--accent); border-width: 2px; }
+  .poke-info { flex: 1; min-width: 0; }
+  .poke-name { font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .poke-lv { font-size: 0.72rem; color: var(--text-dim); font-weight: 700; }
+  .poke-lead-tag {
+    font-size: 0.58rem; font-weight: 800; background: var(--accent); color: #fff;
+    padding: 1px 6px; border-radius: 999px; letter-spacing: 0.03em;
+  }
+  .poke-xp-track { height: 7px; background: var(--border); border-radius: 999px; overflow: hidden; margin-top: 6px; }
+  .poke-xp-fill { height: 100%; background: var(--accent); border-radius: 999px; }
+  .poke-xp-text { font-size: 0.68rem; color: var(--text-dim); margin-top: 2px; }
+  .poke-quick-stats { font-size: 0.72rem; color: var(--text-dim); margin-top: 4px; }
+  .poke-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+  .poke-actions button {
+    background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+    border-radius: 8px; width: 30px; height: 30px; font-size: 0.85rem; cursor: pointer;
+  }
+  .poke-actions .poke-lead-btn:active, .poke-actions .poke-remove-btn:active { transform: scale(0.92); }
+
+  .dex-card {
+    display: flex; gap: 10px; align-items: center;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
+    padding: 10px; margin-bottom: 8px;
+  }
+  .dex-card.locked .dex-name, .dex-card.locked .poke-types { opacity: 0.5; }
+  .dex-info { flex: 1; min-width: 0; }
+  .dex-name { font-weight: 700; font-size: 0.9rem; }
+  .dex-condition { font-size: 0.72rem; color: var(--warmup); font-weight: 700; margin-top: 2px; }
+  .dex-add-btn {
+    background: var(--run); color: #0b0d10; border: none; border-radius: 8px;
+    padding: 8px 12px; font-weight: 800; font-size: 0.78rem; cursor: pointer; flex-shrink: 0;
+  }
+  .dex-add-btn:disabled { background: var(--border); color: var(--text-dim); cursor: default; }
+
+  #starter-cards { display: flex; flex-direction: column; gap: 10px; }
+  .starter-card {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; text-align: center;
+  }
+  .starter-name { font-weight: 800; font-size: 1.1rem; margin-bottom: 4px; }
+  .starter-desc { font-size: 0.78rem; color: var(--text-dim); margin: 8px 0 10px; }
+  .starter-choose-btn {
+    background: var(--accent); color: #fff; border: none; border-radius: 10px;
+    padding: 10px 22px; font-weight: 800; font-size: 0.9rem; cursor: pointer; width: 100%;
+  }
+  .starter-choose-btn:active { transform: scale(0.97); }
 
   /* Calendar */
   #cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
@@ -709,7 +772,7 @@
 
 <div id="topbar">
   <button class="icon-btn" id="btn-settings" aria-label="Settings">&#9881;&#65039;</button>
-  <button id="level-badge" aria-label="Character">&#9876;&#65039; <span id="level-badge-text">Lv 1</span><span class="xp-mini"><span id="level-badge-xp"></span></span></button>
+  <button id="level-badge" aria-label="Team"><span id="level-badge-icon">&#127918;</span> <span id="level-badge-text">Pick starter</span><span class="xp-mini"><span id="level-badge-xp"></span></span></button>
   <button class="icon-btn" id="btn-theme" aria-label="Toggle dark mode">&#127769;</button>
 </div>
 
@@ -721,7 +784,7 @@
     <div id="idle-actions">
       <button class="sec-btn" id="btn-workouts">&#128203; Choose workout</button>
       <button class="sec-btn" id="btn-calendar">&#128197; Calendar</button>
-      <button class="sec-btn" id="btn-character">&#9876;&#65039; Character</button>
+      <button class="sec-btn" id="btn-character">&#127918; Team</button>
     </div>
   </div>
 
@@ -851,44 +914,45 @@
 <div id="character-overlay" class="sheet-overlay hidden">
   <div class="sheet">
     <h2>Your Runner</h2>
-    <div id="char-header">
-      <div id="char-level">Lv 1</div>
-      <div id="char-rank">Novice Jogger</div>
-    </div>
-    <div id="char-xp-track"><div id="char-xp-fill"></div></div>
-    <div id="char-xp-text"></div>
 
-    <h3>Attributes</h3>
-    <div class="attr-row">
-      <span class="attr-name">Stamina</span>
-      <span class="attr-track"><span id="attr-stamina" style="background:var(--run)"></span></span>
-      <span class="attr-val" id="attr-stamina-val">0</span>
-    </div>
-    <div class="attr-row">
-      <span class="attr-name">Speed</span>
-      <span class="attr-track"><span id="attr-speed" style="background:var(--walk)"></span></span>
-      <span class="attr-val" id="attr-speed-val">0</span>
-    </div>
-    <div class="attr-row">
-      <span class="attr-name">Grit</span>
-      <span class="attr-track"><span id="attr-grit" style="background:var(--warmup)"></span></span>
-      <span class="attr-val" id="attr-grit-val">0</span>
+    <div id="char-tabs">
+      <button class="char-tab on" id="tab-btn-team">Team</button>
+      <button class="char-tab" id="tab-btn-quests">Quests &amp; Badges</button>
     </div>
 
-    <h3>Weekly quests</h3>
-    <div id="char-quests"></div>
-
-    <h3>Badges</h3>
-    <div id="char-badges"></div>
-
-    <h3>Stats</h3>
-    <div id="char-stats">
-      <div class="stat-tile"><div class="stat-num" id="stat-workouts">0</div><div class="stat-lbl">Workouts</div></div>
-      <div class="stat-tile"><div class="stat-num" id="stat-streak">0</div><div class="stat-lbl">Day streak</div></div>
-      <div class="stat-tile"><div class="stat-num" id="stat-best-streak">0</div><div class="stat-lbl">Best streak</div></div>
-      <div class="stat-tile"><div class="stat-num" id="stat-total-time">0m</div><div class="stat-lbl">Total time</div></div>
-      <div class="stat-tile"><div class="stat-num" id="stat-distance">0</div><div class="stat-lbl">Distance</div></div>
+    <div id="tabpanel-team">
+      <div id="starter-select" class="hidden">
+        <div class="setting-hint">Pick a starter to begin your team. It levels up as you complete real workouts &mdash; no simulated runs, only ones you actually finish.</div>
+        <div id="starter-historical-note" class="setting-hint"></div>
+        <div id="starter-cards"></div>
+      </div>
+      <div id="team-view" class="hidden">
+        <div id="team-roster"></div>
+        <h3>Pok&eacute;dex</h3>
+        <div class="setting-hint" style="margin-top:-4px;margin-bottom:8px;">
+          Unlocked Pok&eacute;mon can join your team (max 6). Locked ones show what to do to earn them.
+        </div>
+        <div id="pokedex-list"></div>
+      </div>
     </div>
+
+    <div id="tabpanel-quests" class="hidden">
+      <h3>Weekly quests</h3>
+      <div id="char-quests"></div>
+
+      <h3>Badges</h3>
+      <div id="char-badges"></div>
+
+      <h3>Stats</h3>
+      <div id="char-stats">
+        <div class="stat-tile"><div class="stat-num" id="stat-workouts">0</div><div class="stat-lbl">Workouts</div></div>
+        <div class="stat-tile"><div class="stat-num" id="stat-streak">0</div><div class="stat-lbl">Day streak</div></div>
+        <div class="stat-tile"><div class="stat-num" id="stat-best-streak">0</div><div class="stat-lbl">Best streak</div></div>
+        <div class="stat-tile"><div class="stat-num" id="stat-total-time">0m</div><div class="stat-lbl">Total time</div></div>
+        <div class="stat-tile"><div class="stat-num" id="stat-distance">0</div><div class="stat-lbl">Distance</div></div>
+      </div>
+    </div>
+
     <button class="sheet-close" id="character-close">Close</button>
   </div>
 </div>
@@ -994,19 +1058,289 @@
   function xpToReach(level) { return 25 * (level - 1) * level; }
   function levelFromXp(xp) { var L = 1; while (xpToReach(L + 1) <= xp) L++; return L; }
 
-  var RANKS = [
-    { min: 1, title: "Novice Jogger" },
-    { min: 3, title: "Pace Cadet" },
-    { min: 5, title: "Trail Runner" },
-    { min: 7, title: "Stride Knight" },
-    { min: 10, title: "Tempo Warrior" },
-    { min: 14, title: "Marathon Mage" },
-    { min: 19, title: "Legendary Strider" }
+  // ---------------- Pokémon team ----------------
+  // Real names/theme (personal, non-commercial use), but no hotlinked sprite
+  // images — this app stays a single offline-capable file with zero
+  // third-party dependencies, so creatures render as styled type-badge
+  // emoji instead of fetched artwork.
+  var POKEDEX = [
+    { id: "bulbasaur", name: "Bulbasaur", types: ["grass", "poison"], rarity: "common", sprite: "🌱",
+      baseStats: { hp: 45, attack: 49, defense: 49, spAtk: 65, spDef: 65, speed: 45 }, evolutionLevel: 16, evolveInto: "ivysaur" },
+    { id: "ivysaur", name: "Ivysaur", types: ["grass", "poison"], rarity: "common", sprite: "🌿",
+      baseStats: { hp: 60, attack: 62, defense: 63, spAtk: 80, spDef: 80, speed: 60 }, evolutionLevel: 32, evolveInto: "venusaur" },
+    { id: "venusaur", name: "Venusaur", types: ["grass", "poison"], rarity: "uncommon", sprite: "🌳",
+      baseStats: { hp: 80, attack: 82, defense: 83, spAtk: 100, spDef: 100, speed: 80 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "charmander", name: "Charmander", types: ["fire"], rarity: "common", sprite: "🦎",
+      baseStats: { hp: 39, attack: 52, defense: 43, spAtk: 60, spDef: 50, speed: 65 }, evolutionLevel: 16, evolveInto: "charmeleon" },
+    { id: "charmeleon", name: "Charmeleon", types: ["fire"], rarity: "common", sprite: "🔥",
+      baseStats: { hp: 58, attack: 64, defense: 58, spAtk: 80, spDef: 65, speed: 80 }, evolutionLevel: 36, evolveInto: "charizard" },
+    { id: "charizard", name: "Charizard", types: ["fire", "flying"], rarity: "uncommon", sprite: "🐉",
+      baseStats: { hp: 78, attack: 84, defense: 78, spAtk: 109, spDef: 85, speed: 100 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "squirtle", name: "Squirtle", types: ["water"], rarity: "common", sprite: "🐢",
+      baseStats: { hp: 44, attack: 48, defense: 65, spAtk: 50, spDef: 64, speed: 43 }, evolutionLevel: 16, evolveInto: "wartortle" },
+    { id: "wartortle", name: "Wartortle", types: ["water"], rarity: "common", sprite: "🐢",
+      baseStats: { hp: 59, attack: 63, defense: 80, spAtk: 65, spDef: 80, speed: 58 }, evolutionLevel: 36, evolveInto: "blastoise" },
+    { id: "blastoise", name: "Blastoise", types: ["water"], rarity: "uncommon", sprite: "🐢",
+      baseStats: { hp: 79, attack: 83, defense: 100, spAtk: 85, spDef: 105, speed: 78 }, evolutionLevel: null, evolveInto: null },
+
+    { id: "pidgeot", name: "Pidgeot", types: ["normal", "flying"], rarity: "uncommon", sprite: "🦅",
+      baseStats: { hp: 83, attack: 80, defense: 75, spAtk: 70, spDef: 70, speed: 101 }, evolutionLevel: null, evolveInto: null },
+    { id: "pikachu", name: "Pikachu", types: ["electric"], rarity: "rare", sprite: "⚡",
+      baseStats: { hp: 35, attack: 55, defense: 40, spAtk: 50, spDef: 50, speed: 90 }, evolutionLevel: null, evolveInto: null },
+    { id: "dragonair", name: "Dragonair", types: ["dragon"], rarity: "rare", sprite: "🐍",
+      baseStats: { hp: 61, attack: 84, defense: 65, spAtk: 70, spDef: 70, speed: 70 }, evolutionLevel: null, evolveInto: null },
+    { id: "gyarados", name: "Gyarados", types: ["water", "flying"], rarity: "legendary", sprite: "🐟",
+      baseStats: { hp: 95, attack: 125, defense: 79, spAtk: 60, spDef: 100, speed: 81 }, evolutionLevel: null, evolveInto: null },
+    { id: "dragonite", name: "Dragonite", types: ["dragon", "flying"], rarity: "legendary", sprite: "🐉",
+      baseStats: { hp: 91, attack: 134, defense: 95, spAtk: 100, spDef: 100, speed: 80 }, evolutionLevel: null, evolveInto: null },
+    { id: "snorlax", name: "Snorlax", types: ["normal"], rarity: "legendary", sprite: "😴",
+      baseStats: { hp: 160, attack: 110, defense: 65, spAtk: 65, spDef: 110, speed: 30 }, evolutionLevel: null, evolveInto: null }
   ];
-  function rankFor(level) {
-    var t = RANKS[0].title;
-    for (var i = 0; i < RANKS.length; i++) if (level >= RANKS[i].min) t = RANKS[i].title;
-    return t;
+  var POKEDEX_BY_ID = {};
+  POKEDEX.forEach(function (p) { POKEDEX_BY_ID[p.id] = p; });
+
+  var STARTER_IDS = ["bulbasaur", "charmander", "squirtle"];
+  var STARTER_FLAVOR = {
+    bulbasaur: "A steady, reliable partner with great early stamina.",
+    charmander: "Quick off the line, with a fire that grows with every run.",
+    squirtle: "Tough and durable — built to go the distance."
+  };
+
+  // Reuses stats badges already track (workouts, distance, best streak) — no new tracking.
+  var POKEMON_ACHIEVEMENTS = [
+    { id: "first_run", label: "Complete your first run", unlockIds: ["pidgeot"], check: function (p) { return p.workouts >= 1; } },
+    { id: "five_km", label: "Run 5 km total", unlockIds: ["pikachu"], check: function (p) { return (p.totalDistanceMeters || 0) >= 5000; } },
+    { id: "ten_runs", label: "Complete 10 runs", unlockIds: ["dragonair"], check: function (p) { return p.workouts >= 10; } },
+    { id: "fifty_km", label: "Run 50 km total", unlockIds: ["gyarados", "dragonite"], check: function (p) { return (p.totalDistanceMeters || 0) >= 50000; } },
+    { id: "perfect_week", label: "Run 7 consecutive days", unlockIds: ["snorlax"], check: function (p) { return (p.bestStreak || 0) >= 7; } }
+  ];
+
+  var POKEMON_KEY = "rwPokemon";
+  var POKEMON_DEFAULT = { starterId: null, team: [], unlockedIds: [], achievements: {}, historicalExpApplied: false };
+  function loadPokemon() {
+    try {
+      var p = JSON.parse(localStorage.getItem(POKEMON_KEY));
+      return p ? Object.assign({}, POKEMON_DEFAULT, p) : Object.assign({}, POKEMON_DEFAULT);
+    } catch (e) { return Object.assign({}, POKEMON_DEFAULT); }
+  }
+  function savePokemon() { try { localStorage.setItem(POKEMON_KEY, JSON.stringify(pokemonState)); } catch (e) {} }
+  var pokemonState = loadPokemon();
+
+  function pokemonExpToNext(level) { return Math.floor(100 * (1 + level * 0.1)); }
+
+  // Applies EXP to a team member in place; handles multi-level-ups and
+  // evolution in one pass (needed for the historical lump-sum grant).
+  function applyPokemonExp(member, exp) {
+    if (!member || exp <= 0) return { leveledUp: false, evolutions: [], newLevel: member ? member.level : 0 };
+    member.currentExp = (member.currentExp || 0) + exp;
+    var leveledUp = false, evolutions = [], guard = 0;
+    while (member.level < 100 && guard < 500) {
+      var need = pokemonExpToNext(member.level);
+      if (member.currentExp < need) break;
+      member.currentExp -= need;
+      member.level++;
+      leveledUp = true;
+      var species = POKEDEX_BY_ID[member.id];
+      if (species && species.evolutionLevel && species.evolveInto && member.level >= species.evolutionLevel) {
+        evolutions.push({ from: species.name, to: POKEDEX_BY_ID[species.evolveInto].name });
+        member.id = species.evolveInto;
+      }
+      guard++;
+    }
+    if (member.level >= 100) { member.level = 100; member.currentExp = 0; }
+    return { leveledUp: leveledUp, evolutions: evolutions, newLevel: member.level };
+  }
+
+  // Replays real run history through the same base formula finishWorkout()
+  // uses (time + run-time + distance bonus, no streak multiplier — a
+  // one-time fairness approximation, not a bit-exact historical replay) so a
+  // new starter reflects running already done instead of starting at 0 EXP.
+  function computeHistoricalPokemonExp() {
+    var total = 0;
+    loadHistory().forEach(function (h) {
+      var runSec = (h.reps && h.run) ? h.reps * h.run * 60 : 0;
+      var dist = h.distanceMeters || 0;
+      var distXp = dist ? Math.round((dist / METERS_PER_MILE) * 8) : 0;
+      var base = Math.max(1, Math.round((h.totalSeconds || 0) / 60 + (runSec / 60) * 2));
+      total += base + distXp;
+    });
+    return total;
+  }
+
+  function selectStarter(id) {
+    if (pokemonState.starterId) return; // one-time choice
+    pokemonState.starterId = id;
+    pokemonState.team = [{ id: id, level: 5, currentExp: 0 }];
+    pokemonState.unlockedIds = [id];
+    if (!pokemonState.historicalExpApplied) {
+      var histExp = computeHistoricalPokemonExp();
+      if (histExp > 0) applyPokemonExp(pokemonState.team[0], histExp);
+      pokemonState.historicalExpApplied = true;
+    }
+    savePokemon();
+  }
+  function addToTeam(id) {
+    if (pokemonState.team.length >= 6) return false;
+    if (pokemonState.team.some(function (m) { return m.id === id; })) return false;
+    pokemonState.team.push({ id: id, level: 5, currentExp: 0 });
+    savePokemon();
+    return true;
+  }
+  function removeFromTeam(index) {
+    if (pokemonState.team.length <= 1) return false; // always keep a lead
+    pokemonState.team.splice(index, 1);
+    savePokemon();
+    return true;
+  }
+  function makeLead(index) {
+    if (index <= 0 || index >= pokemonState.team.length) return;
+    var m = pokemonState.team.splice(index, 1)[0];
+    pokemonState.team.unshift(m);
+    savePokemon();
+  }
+  function checkPokemonUnlocks() {
+    var newly = [];
+    POKEMON_ACHIEVEMENTS.forEach(function (a) {
+      if (!pokemonState.achievements[a.id] && a.check(player)) {
+        pokemonState.achievements[a.id] = true;
+        a.unlockIds.forEach(function (id) { if (pokemonState.unlockedIds.indexOf(id) === -1) pokemonState.unlockedIds.push(id); });
+        newly.push({ achievement: a, pokemon: a.unlockIds.map(function (id) { return POKEDEX_BY_ID[id]; }) });
+      }
+    });
+    if (newly.length) savePokemon();
+    return newly;
+  }
+
+  function typeColor(type) {
+    var map = { fire: "#F08030", water: "#6890F0", grass: "#78C850", electric: "#E8C020",
+      normal: "#A8A878", flying: "#A890F0", dragon: "#7038F8", poison: "#A040A0" };
+    return map[type] || "#A8A878";
+  }
+  function typeBadges(types) {
+    return types.map(function (t) { return '<span class="type-badge type-' + t + '">' + t + '</span>'; }).join("");
+  }
+
+  function showCharTab(tab) {
+    document.getElementById("tab-btn-team").classList.toggle("on", tab === "team");
+    document.getElementById("tab-btn-quests").classList.toggle("on", tab === "quests");
+    document.getElementById("tabpanel-team").classList.toggle("hidden", tab !== "team");
+    document.getElementById("tabpanel-quests").classList.toggle("hidden", tab !== "quests");
+  }
+
+  function renderStarterSelect() {
+    var histExp = computeHistoricalPokemonExp();
+    var histCount = loadHistory().length;
+    var note = document.getElementById("starter-historical-note");
+    note.textContent = histCount > 0
+      ? "You'll start with " + histExp + " EXP from your " + histCount + " completed run" + (histCount === 1 ? "" : "s") + "."
+      : "";
+    var wrap = document.getElementById("starter-cards");
+    wrap.innerHTML = "";
+    STARTER_IDS.forEach(function (id) {
+      var species = POKEDEX_BY_ID[id];
+      var card = document.createElement("div");
+      card.className = "starter-card";
+      card.innerHTML =
+        '<div class="poke-sprite big" style="background:' + typeColor(species.types[0]) + '">' + species.sprite + '</div>' +
+        '<div class="starter-name">' + species.name + '</div>' +
+        '<div class="poke-types">' + typeBadges(species.types) + '</div>' +
+        '<div class="starter-desc">' + (STARTER_FLAVOR[id] || "") + '</div>';
+      var btn = document.createElement("button");
+      btn.className = "starter-choose-btn";
+      btn.textContent = "Choose " + species.name;
+      btn.addEventListener("click", function () { selectStarter(id); renderTeamTab(); updateLevelBadge(); });
+      card.appendChild(btn);
+      wrap.appendChild(card);
+    });
+  }
+
+  function renderTeamRoster() {
+    var wrap = document.getElementById("team-roster");
+    wrap.innerHTML = "";
+    pokemonState.team.forEach(function (member, idx) {
+      var species = POKEDEX_BY_ID[member.id];
+      if (!species) return;
+      var need = pokemonExpToNext(member.level);
+      var pct = member.level >= 100 ? 100 : Math.min(100, (member.currentExp / need) * 100);
+      var card = document.createElement("div");
+      card.className = "poke-card" + (idx === 0 ? " lead" : "");
+      card.innerHTML =
+        '<div class="poke-sprite" style="background:' + typeColor(species.types[0]) + '">' + species.sprite + '</div>' +
+        '<div class="poke-info">' +
+          '<div class="poke-name">' + species.name + ' <span class="poke-lv">Lv ' + member.level + '</span>' +
+          (idx === 0 ? '<span class="poke-lead-tag">LEAD</span>' : '') + '</div>' +
+          '<div class="poke-types">' + typeBadges(species.types) + '</div>' +
+          '<div class="poke-xp-track"><div class="poke-xp-fill" style="width:' + pct + '%"></div></div>' +
+          '<div class="poke-xp-text">' + (member.level >= 100 ? "Max level" : member.currentExp + " / " + need + " EXP") + '</div>' +
+          '<div class="poke-quick-stats">HP ' + species.baseStats.hp + ' · ATK ' + species.baseStats.attack + '</div>' +
+        '</div>';
+      var actions = document.createElement("div");
+      actions.className = "poke-actions";
+      if (idx !== 0) {
+        var leadBtn = document.createElement("button");
+        leadBtn.className = "poke-lead-btn"; leadBtn.textContent = "★"; leadBtn.setAttribute("aria-label", "Make lead");
+        leadBtn.addEventListener("click", function () { makeLead(idx); renderTeamTab(); updateLevelBadge(); });
+        actions.appendChild(leadBtn);
+      }
+      if (pokemonState.team.length > 1) {
+        var rmBtn = document.createElement("button");
+        rmBtn.className = "poke-remove-btn"; rmBtn.textContent = "✕"; rmBtn.setAttribute("aria-label", "Remove from team");
+        rmBtn.addEventListener("click", function () { removeFromTeam(idx); renderTeamTab(); updateLevelBadge(); });
+        actions.appendChild(rmBtn);
+      }
+      card.appendChild(actions);
+      wrap.appendChild(card);
+    });
+  }
+
+  function renderPokedex() {
+    var wrap = document.getElementById("pokedex-list");
+    wrap.innerHTML = "";
+    POKEMON_ACHIEVEMENTS.forEach(function (a) {
+      a.unlockIds.forEach(function (id) {
+        var species = POKEDEX_BY_ID[id];
+        var unlocked = pokemonState.unlockedIds.indexOf(id) !== -1;
+        var onTeam = pokemonState.team.some(function (m) { return m.id === id; });
+        var card = document.createElement("div");
+        card.className = "dex-card" + (unlocked ? " unlocked" : " locked");
+        var spriteStyle = unlocked ? 'background:' + typeColor(species.types[0]) : '';
+        var spriteClass = "poke-sprite small" + (unlocked ? "" : " locked-sprite");
+        card.innerHTML =
+          '<div class="' + spriteClass + '" style="' + spriteStyle + '">' + species.sprite + '</div>' +
+          '<div class="dex-info">' +
+            '<div class="dex-name">' + species.name + '</div>' +
+            '<div class="poke-types">' + typeBadges(species.types) + '</div>' +
+            '<span class="rarity-tag rarity-' + species.rarity + '">' + species.rarity + '</span>' +
+            (unlocked ? '' : '<div class="dex-condition">🔒 ' + a.label + '</div>') +
+          '</div>';
+        if (unlocked) {
+          var btn = document.createElement("button");
+          btn.className = "dex-add-btn";
+          if (onTeam) { btn.textContent = "On team"; btn.disabled = true; }
+          else if (pokemonState.team.length >= 6) { btn.textContent = "Team full"; btn.disabled = true; }
+          else { btn.textContent = "+ Add"; btn.addEventListener("click", function () { addToTeam(id); renderTeamTab(); }); }
+          card.appendChild(btn);
+        }
+        wrap.appendChild(card);
+      });
+    });
+  }
+
+  function renderTeamTab() {
+    var selectEl = document.getElementById("starter-select");
+    var teamEl = document.getElementById("team-view");
+    if (!pokemonState.starterId) {
+      selectEl.classList.remove("hidden");
+      teamEl.classList.add("hidden");
+      renderStarterSelect();
+    } else {
+      selectEl.classList.add("hidden");
+      teamEl.classList.remove("hidden");
+      renderTeamRoster();
+      renderPokedex();
+    }
   }
 
   function todayStr() { var d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
@@ -1223,41 +1557,30 @@
     return { graduated: false, week: next };
   }
 
-  function attributes() {
-    return {
-      stamina: Math.floor(player.totalSeconds / 600), // +1 per 10 min total
-      speed: Math.floor(player.totalRunSeconds / 120), // +1 per 2 min running
-      grit: player.bestStreak
-    };
-  }
-
+  // Top-bar badge shows the lead Pokémon (or a "pick starter" prompt) in
+  // place of the old rank/level badge.
   function updateLevelBadge() {
-    var lvl = levelFromXp(player.xp);
-    var cur = xpToReach(lvl), next = xpToReach(lvl + 1);
-    var pct = next > cur ? Math.round(((player.xp - cur) / (next - cur)) * 100) : 0;
+    var icon = document.getElementById("level-badge-icon");
     var t = document.getElementById("level-badge-text");
     var xf = document.getElementById("level-badge-xp");
-    if (t) t.textContent = "Lv " + lvl;
+    if (!t) return;
+    if (!pokemonState.starterId || !pokemonState.team.length) {
+      if (icon) icon.textContent = "🎮";
+      t.textContent = "Pick starter";
+      if (xf) xf.style.width = "0%";
+      return;
+    }
+    var lead = pokemonState.team[0];
+    var species = POKEDEX_BY_ID[lead.id];
+    var need = pokemonExpToNext(lead.level);
+    var pct = lead.level >= 100 ? 100 : Math.round((lead.currentExp / need) * 100);
+    if (icon) icon.textContent = species.sprite;
+    t.textContent = species.name + " Lv" + lead.level;
     if (xf) xf.style.width = pct + "%";
   }
 
   function renderCharacter() {
-    var lvl = levelFromXp(player.xp);
-    var cur = xpToReach(lvl), next = xpToReach(lvl + 1);
-    document.getElementById("char-level").textContent = "Lv " + lvl;
-    document.getElementById("char-rank").textContent = rankFor(lvl);
-    document.getElementById("char-xp-fill").style.width = (next > cur ? ((player.xp - cur) / (next - cur)) * 100 : 100) + "%";
-    document.getElementById("char-xp-text").textContent =
-      (player.xp - cur) + " / " + (next - cur) + " XP to Lv " + (lvl + 1) + "  ·  " + player.xp + " total";
-    var a = attributes();
-    function setAttr(id, val) {
-      var max = Math.max(10, Math.ceil((val + 1) / 10) * 10);
-      document.getElementById(id).style.width = Math.min(100, (val / max) * 100) + "%";
-      document.getElementById(id + "-val").textContent = val;
-    }
-    setAttr("attr-stamina", a.stamina);
-    setAttr("attr-speed", a.speed);
-    setAttr("attr-grit", a.grit);
+    renderTeamTab();
     document.getElementById("stat-workouts").textContent = player.workouts;
     document.getElementById("stat-streak").textContent = player.streak;
     document.getElementById("stat-best-streak").textContent = player.bestStreak;
@@ -1931,7 +2254,14 @@
     var quest = claimQuests();                          // bonus XP from met quests
     var program = advanceProgram();                     // may load next week + set gradFlag
     var badges = checkBadges();                          // unlock newly-earned badges
-    var afterLevel = levelFromXp(player.xp);
+    var pokeUnlocks = checkPokemonUnlocks();             // unlock newly-earned Pokémon
+    var pokeResult = null;
+    if (pokemonState.starterId && pokemonState.team.length) {
+      // Same total the old rank XP would have received — just also applied
+      // to the lead Pokémon now.
+      pokeResult = applyPokemonExp(pokemonState.team[0], base.xpGain + quest.bonus);
+      savePokemon();
+    }
     updateLevelBadge();
 
     currentIndex = -1;
@@ -1940,8 +2270,8 @@
       (finalDistance > 0 ? " · " + formatDistance(finalDistance) : "") + " — saved.";
     showReward({
       xpGain: base.xpGain, streak: base.streak, distanceMeters: base.distanceMeters,
-      leveledUp: afterLevel > base.beforeLevel, level: afterLevel, rank: rankFor(afterLevel),
-      questBonus: quest.bonus, quests: quest.quests, badges: badges, program: program
+      questBonus: quest.bonus, quests: quest.quests, badges: badges, program: program,
+      pokeResult: pokeResult, pokeUnlocks: pokeUnlocks
     });
     $btnStart.textContent = "Start";
     $btnStart.classList.remove("hidden");
@@ -1959,10 +2289,23 @@
       lines.push('<span class="quest-pop">✅ Quest' + (r.quests.length > 1 ? 's' : '') + ': ' +
         r.quests.map(function (q) { return q.name; }).join(', ') + '  (+' + r.questBonus + ' XP)</span>');
     }
-    if (r.leveledUp) lines.push('<span class="levelup">⭐ LEVEL UP! Lv ' + r.level + ' — ' + r.rank + '</span>');
+    if (r.pokeResult && r.pokeResult.leveledUp) {
+      var leadSpecies = POKEDEX_BY_ID[pokemonState.team[0].id];
+      lines.push('<span class="levelup">⭐ ' + leadSpecies.name + ' leveled up to Lv ' + r.pokeResult.newLevel + '!</span>');
+    }
+    if (r.pokeResult && r.pokeResult.evolutions.length) {
+      r.pokeResult.evolutions.forEach(function (e) {
+        lines.push('<span class="evo-pop">✨ ' + e.from + ' evolved into ' + e.to + '!</span>');
+      });
+    }
     if (r.badges && r.badges.length) {
       lines.push('<span class="badge-pop">🏅 New badge' + (r.badges.length > 1 ? 's' : '') + ': ' +
         r.badges.map(function (b) { return b.ico + ' ' + b.name; }).join(', ') + '</span>');
+    }
+    if (r.pokeUnlocks && r.pokeUnlocks.length) {
+      var names = [];
+      r.pokeUnlocks.forEach(function (u) { u.pokemon.forEach(function (p) { names.push(p.sprite + ' ' + p.name); }); });
+      lines.push('<span class="badge-pop">🎉 New Pokémon unlocked: ' + names.join(', ') + '</span>');
     }
     if (r.program) {
       if (r.program.graduated) lines.push('<span class="badge-pop">🎓 Program complete — nice work!</span>');
@@ -2170,7 +2513,7 @@
   // ---------------- Workouts & character panels ----------------
   function openWorkouts() { renderWorkoutsList(); document.getElementById("workouts-overlay").classList.remove("hidden"); }
   function closeWorkouts() { document.getElementById("workouts-overlay").classList.add("hidden"); }
-  function openCharacter() { refreshStreak(); renderCharacter(); document.getElementById("character-overlay").classList.remove("hidden"); }
+  function openCharacter() { refreshStreak(); showCharTab("team"); renderCharacter(); document.getElementById("character-overlay").classList.remove("hidden"); }
   function closeCharacter() { document.getElementById("character-overlay").classList.add("hidden"); }
 
   document.getElementById("btn-workouts").addEventListener("click", openWorkouts);
@@ -2184,6 +2527,8 @@
   document.getElementById("character-overlay").addEventListener("click", function (e) {
     if (e.target.id === "character-overlay") closeCharacter();
   });
+  document.getElementById("tab-btn-team").addEventListener("click", function () { showCharTab("team"); });
+  document.getElementById("tab-btn-quests").addEventListener("click", function () { showCharTab("quests"); });
 
   document.getElementById("wk-save-btn").addEventListener("click", function () {
     var nameEl = document.getElementById("wk-save-name");
@@ -2565,7 +2910,7 @@
   });
 
   // ---------------- Backup & restore ----------------
-  var BACKUP_KEYS = ["rwTimerSettings", "rwTimerHistory", "rwPlayer", "rwSavedWorkouts", "rwSchedule", "rwTimerTheme", "rwActivities", "rwConfirmedSchedule"];
+  var BACKUP_KEYS = ["rwTimerSettings", "rwTimerHistory", "rwPlayer", "rwSavedWorkouts", "rwSchedule", "rwTimerTheme", "rwActivities", "rwConfirmedSchedule", "rwPokemon"];
 
   function makeBackup() {
     var data = {};
@@ -2591,6 +2936,7 @@
   function reloadAllFromStorage() {
     settings = loadSettings();
     player = loadPlayer();
+    pokemonState = loadPokemon();
     segments = buildSegments(settings);
     totalDuration = segments.length ? segments[segments.length - 1].endTime : 0;
     currentIndex = -1;
