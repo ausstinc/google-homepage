@@ -190,6 +190,7 @@
 
   #btn-start { background: var(--run); color: #fff; }
   #btn-pause { background: var(--accent); color: #fff; }
+  #btn-finish-walk { background: var(--walk); color: #fff; }
   #btn-reset { background: transparent; color: var(--text-dim); border: 2px solid var(--border); flex: 0 0 auto; max-width: none; padding: 20px 22px; }
 
   .hidden { display: none !important; }
@@ -788,6 +789,7 @@
     <div id="reward-line" class="hidden"></div>
     <div id="idle-actions">
       <button class="sec-btn" id="btn-workouts">&#128203; Choose workout</button>
+      <button class="sec-btn" id="btn-walk">&#128694; Go for a walk</button>
       <button class="sec-btn" id="btn-calendar">&#128197; Calendar</button>
       <button class="sec-btn" id="btn-character">&#127918; Team</button>
     </div>
@@ -818,6 +820,7 @@
 <div id="controls">
   <button class="big-btn" id="btn-start">Start</button>
   <button class="big-btn hidden" id="btn-pause">Pause</button>
+  <button class="big-btn hidden" id="btn-finish-walk">Finish walk</button>
   <button class="big-btn" id="btn-reset">Reset</button>
 </div>
 
@@ -1599,7 +1602,7 @@
 
   // Award base XP + update streak/stats for a finished workout.
   // Returns the base info; quests/badges/program are layered on in finishWorkout.
-  function awardWorkout(totalSec, runSec, distanceMeters) {
+  function awardWorkout(totalSec, runSec, distanceMeters, isRunDistance) {
     // history already includes this workout when this is called
     refreshStreak();
     player.lastDate = todayStr();
@@ -1615,7 +1618,9 @@
     player.totalRunSeconds += Math.round(runSec);
     if (distanceMeters) {
       player.totalDistanceMeters = (player.totalDistanceMeters || 0) + distanceMeters;
-      if (distanceMeters > (player.bestRunDistanceMeters || 0)) player.bestRunDistanceMeters = distanceMeters;
+      // bestRunDistanceMeters gates run-specific badges/unlocks — a walk's
+      // distance shouldn't count as a personal-best "run".
+      if (isRunDistance && distanceMeters > (player.bestRunDistanceMeters || 0)) player.bestRunDistanceMeters = distanceMeters;
     }
     savePlayer();
     return { xpGain: xpGain, beforeLevel: before, streak: player.streak, distanceMeters: distanceMeters || 0 };
@@ -1844,6 +1849,10 @@
     if (state === STATE_RUNNING || state === STATE_PAUSED) {
       if (!confirm("Load this workout? It will reset the current one.")) return false;
     }
+    if (walkState !== "idle") {
+      if (!confirm("Load this workout? It will end your current walk without saving it.")) return false;
+      resetWalk();
+    }
     settings.warmup = cfg.warmup; settings.run = cfg.run; settings.walk = cfg.walk;
     settings.reps = cfg.reps; settings.cooldown = cfg.cooldown;
     saveSettings(settings);
@@ -1957,6 +1966,8 @@
   var $overallTrack = document.getElementById("overall-track");
   var $btnStart = document.getElementById("btn-start");
   var $btnPause = document.getElementById("btn-pause");
+  var $btnFinishWalk = document.getElementById("btn-finish-walk");
+  var $btnWalk = document.getElementById("btn-walk");
   var $btnReset = document.getElementById("btn-reset");
   var $btnTheme = document.getElementById("btn-theme");
   var $btnSettings = document.getElementById("btn-settings");
@@ -2083,7 +2094,7 @@
       var now = Date.now();
       gpsStatus = "active";
       if (acc != null && acc > GPS_MIN_ACCURACY_M) { updateGpsStatusIcon(); return; } // too noisy, skip
-      if (state === STATE_RUNNING) {
+      if (state === STATE_RUNNING || walkState === "running") {
         if (gpsLastFix) {
           var dt = (now - gpsLastFix.t) / 1000;
           if (dt > 0) {
@@ -2291,9 +2302,13 @@
     if (wakeLock) { wakeLock.release().catch(function () {}); wakeLock = null; }
   }
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible" && state === STATE_RUNNING) {
+    if (document.visibilityState !== "visible") return;
+    if (state === STATE_RUNNING) {
       requestWakeLock();
       tick(); // resync the display to the audio playhead after the screen was off
+    } else if (walkState === "running") {
+      requestWakeLock();
+      walkTick();
     }
   });
 
@@ -2306,8 +2321,8 @@
         artist: "Ready",
         album: "Interval Training"
       });
-      navigator.mediaSession.setActionHandler("play", function () { toggleStartPause(); });
-      navigator.mediaSession.setActionHandler("pause", function () { toggleStartPause(); });
+      navigator.mediaSession.setActionHandler("play", function () { if (activeMode() === "walk") toggleWalkStartPause(); else toggleStartPause(); });
+      navigator.mediaSession.setActionHandler("pause", function () { if (activeMode() === "walk") toggleWalkStartPause(); else toggleStartPause(); });
     } catch (e) {}
   }
   function updateMediaSession(text) {
@@ -2318,7 +2333,7 @@
         artist: "Run/Walk Timer",
         album: "Interval Training"
       });
-      navigator.mediaSession.playbackState = state === STATE_RUNNING ? "playing" : "paused";
+      navigator.mediaSession.playbackState = (state === STATE_RUNNING || walkState === "running") ? "playing" : "paused";
     } catch (e) {}
   }
 
@@ -2351,6 +2366,9 @@
   function renderActive() {
     $idleView.classList.add("hidden");
     $activeView.classList.remove("hidden");
+    $nextPhase.classList.remove("hidden");
+    document.getElementById("progress-block").classList.remove("hidden");
+    $totalTime.classList.remove("hidden");
     var seg = segments[currentIndex];
     $stage.className = "stage " + phaseClass(seg.type) + " has-color";
     $phaseLabel.textContent = seg.type === "warmup" || seg.type === "cooldown" ? seg.label : seg.label;
@@ -2443,7 +2461,7 @@
     if (hr < 7) player.earlyFlag = true;
     if (hr >= 20) player.nightFlag = true;
 
-    var base = awardWorkout(totalSec, runSec, finalDistance); // base XP + streak/stats/distance
+    var base = awardWorkout(totalSec, runSec, finalDistance, true); // base XP + streak/stats/distance
     var quest = claimQuests();                          // bonus XP from met quests
     var program = advanceProgram();                     // may load next week + set gradFlag
     var badges = checkBadges();                          // unlock newly-earned badges
@@ -2587,20 +2605,180 @@
     if (state === STATE_RUNNING) finishWorkout();
   });
 
-  $btnStart.addEventListener("click", startWorkout);
-  $btnPause.addEventListener("click", pauseWorkout);
-  $btnReset.addEventListener("click", function () {
-    if (state === STATE_RUNNING || state === STATE_PAUSED) {
-      if (!confirm("Reset the current workout?")) return;
+  // ---------------- Go for a walk (open-ended, no intervals) ----------------
+  // A separate, minimal mode: no pre-rendered audio clip (no alerts to
+  // schedule), no fixed duration — just a plain wall-clock elapsed timer
+  // (robust to background tab throttling since it's recomputed from
+  // Date.now(), not ticked) plus the same optional GPS tracking. Mutually
+  // exclusive with the interval engine; reuses its reward/history plumbing.
+  var walkState = "idle"; // idle | running | paused
+  var walkStartedAt = null;
+  var walkAccumSec = 0;
+  var walkTickHandle = null;
+
+  function activeMode() { return walkState !== "idle" ? "walk" : "interval"; }
+
+  function walkElapsedSeconds() {
+    if (walkState === "running" && walkStartedAt) return walkAccumSec + (Date.now() - walkStartedAt) / 1000;
+    return walkAccumSec;
+  }
+
+  function renderWalkActive() {
+    $idleView.classList.add("hidden");
+    $activeView.classList.remove("hidden");
+    $stage.className = "stage phase-walk has-color";
+    $phaseLabel.textContent = "Walking";
+    $repCounter.style.display = "none";
+    $nextPhase.classList.add("hidden");
+    document.getElementById("progress-block").classList.add("hidden");
+    $totalTime.classList.add("hidden");
+  }
+
+  function walkTick() {
+    if (walkState !== "running") return;
+    var elapsed = walkElapsedSeconds();
+    $timeRemaining.textContent = fmtClock(Math.floor(elapsed));
+    updateGpsDisplay(elapsed);
+    updateMediaSession("Walking — " + fmtClock(Math.floor(elapsed)));
+  }
+
+  function startWalk() {
+    if (state === STATE_RUNNING || state === STATE_PAUSED) return; // interval workout has priority
+    if (walkState === "idle") { walkAccumSec = 0; startGpsTracking(); }
+    walkStartedAt = Date.now();
+    walkState = "running";
+    renderWalkActive();
+    if (!walkTickHandle) walkTickHandle = setInterval(walkTick, 500);
+    requestWakeLock();
+    setupMediaSession();
+    walkTick();
+    $btnStart.classList.add("hidden");
+    $btnPause.classList.remove("hidden");
+    $btnPause.textContent = "Pause";
+    $btnFinishWalk.classList.remove("hidden");
+  }
+
+  function pauseWalk() {
+    if (walkState !== "running") return;
+    walkAccumSec = walkElapsedSeconds();
+    walkStartedAt = null;
+    walkState = "paused";
+    if (walkTickHandle) { clearInterval(walkTickHandle); walkTickHandle = null; }
+    releaseWakeLock();
+    updateMediaSession("Paused");
+    $btnPause.classList.add("hidden");
+    $btnStart.classList.remove("hidden");
+    $btnStart.textContent = "Resume";
+  }
+
+  function toggleWalkStartPause() {
+    if (walkState === "running") pauseWalk(); else startWalk();
+  }
+
+  function resetWalkUi() {
+    $btnStart.textContent = "Start";
+    $btnStart.classList.remove("hidden");
+    $btnPause.classList.add("hidden");
+    $btnFinishWalk.classList.add("hidden");
+  }
+
+  function resetWalk() {
+    if (walkTickHandle) { clearInterval(walkTickHandle); walkTickHandle = null; }
+    releaseWakeLock();
+    stopGpsTracking();
+    walkState = "idle";
+    walkAccumSec = 0;
+    walkStartedAt = null;
+    renderIdleOrDone();
+    resetWalkUi();
+    updateMediaSession("Ready");
+  }
+
+  // Save the walk to history and award XP/quests/badges/Pokémon EXP, same as
+  // a completed interval workout — it just doesn't touch the run/walk
+  // program (a walk isn't a prescribed program session).
+  function finishWalk() {
+    if (walkState === "idle") return;
+    var totalSec = Math.round(walkElapsedSeconds());
+    if (walkTickHandle) { clearInterval(walkTickHandle); walkTickHandle = null; }
+    releaseWakeLock();
+    stopGpsTracking();
+    walkState = "idle";
+    walkAccumSec = 0;
+    walkStartedAt = null;
+
+    if (totalSec < 30) { // too short to be worth saving/rewarding
+      renderIdleOrDone();
+      resetWalkUi();
+      updateMediaSession("Ready");
+      return;
     }
-    resetWorkout();
+
+    var finalDistance = settings.gpsEnabled ? gpsDistanceMeters : 0;
+    var finalRoute = settings.gpsEnabled ? gpsPoints.slice() : null;
+    var histEntry = { date: new Date().toISOString(), totalSeconds: totalSec, type: "walk" };
+    if (finalDistance > 0) histEntry.distanceMeters = Math.round(finalDistance);
+    if (finalRoute && finalRoute.length > 1) histEntry.route = finalRoute;
+    pushHistory(histEntry);
+
+    var hr = new Date().getHours();
+    if (hr < 7) player.earlyFlag = true;
+    if (hr >= 20) player.nightFlag = true;
+
+    var base = awardWorkout(totalSec, 0, finalDistance, false);
+    var quest = claimQuests();
+    var badges = checkBadges();
+    var pokeUnlocks = checkPokemonUnlocks();
+    var pokeResult = null;
+    if (pokemonState.starterId && pokemonState.team.length) {
+      pokeResult = applyPokemonExp(pokemonState.team[0], base.xpGain + quest.bonus);
+      savePokemon();
+    }
+    updateLevelBadge();
+
+    renderIdleOrDone("Walk complete!");
+    document.getElementById("idle-sub").textContent = "Total time: " + fmtClock(totalSec) +
+      (finalDistance > 0 ? " · " + formatDistance(finalDistance) : "") + " — saved.";
+    showReward({
+      xpGain: base.xpGain, streak: base.streak, distanceMeters: base.distanceMeters,
+      questBonus: quest.bonus, quests: quest.quests, badges: badges,
+      pokeResult: pokeResult, pokeUnlocks: pokeUnlocks
+    });
+    resetWalkUi();
+    updateMediaSession("Walk complete");
+  }
+
+  $btnWalk.addEventListener("click", startWalk);
+  $btnFinishWalk.addEventListener("click", finishWalk);
+
+  $btnStart.addEventListener("click", function () {
+    if (activeMode() === "walk") startWalk(); else startWorkout();
+  });
+  $btnPause.addEventListener("click", function () {
+    if (activeMode() === "walk") pauseWalk(); else pauseWorkout();
+  });
+  $btnReset.addEventListener("click", function () {
+    if (activeMode() === "walk") {
+      if (walkState !== "idle") { if (!confirm("Discard this walk? It won't be saved.")) return; }
+      resetWalk();
+    } else {
+      if (state === STATE_RUNNING || state === STATE_PAUSED) {
+        if (!confirm("Reset the current workout?")) return;
+      }
+      resetWorkout();
+    }
   });
 
   document.addEventListener("keydown", function (e) {
     if (e.code === "Space") {
       e.preventDefault();
-      if (state === STATE_DONE || state === STATE_IDLE || state === STATE_PAUSED) startWorkout();
-      else toggleStartPause();
+      if (activeMode() === "walk") {
+        toggleWalkStartPause();
+      } else if (state === STATE_DONE || state === STATE_IDLE || state === STATE_PAUSED) {
+        startWorkout();
+      } else {
+        toggleStartPause();
+      }
     }
   });
 
@@ -2634,7 +2812,7 @@
     $setGps.checked = !!settings.gpsEnabled;
     $setGpsLive.checked = !!settings.showLiveGps;
     $setGpsKm.checked = settings.distanceUnit === "km";
-    var locked = state === STATE_RUNNING;
+    var locked = state === STATE_RUNNING || walkState !== "idle";
     $settingsLocked.classList.toggle("hidden", !locked);
     [$setWarmup, $setRun, $setWalk, $setReps, $setCooldown, $setGps].forEach(function (el) {
       el.disabled = locked;
@@ -2656,7 +2834,7 @@
     settings.volume = clampNum($setVolume.value, 0, 100, DEFAULTS.volume, true);
     settings.showLiveGps = $setGpsLive.checked;
     settings.distanceUnit = $setGpsKm.checked ? "km" : "mi";
-    if (state !== STATE_RUNNING) {
+    if (state !== STATE_RUNNING && walkState === "idle") {
       settings.gpsEnabled = $setGps.checked;
       settings.warmup = clampNum($setWarmup.value, 0, 30, DEFAULTS.warmup);
       settings.run = clampNum($setRun.value, 0.25, 30, DEFAULTS.run);
@@ -2795,6 +2973,7 @@
     var s = keyToDate(startKey).getTime(), e = keyToDate(endKey).getTime();
     var seen = {}, count = 0;
     loadHistory().forEach(function (h) {
+      if (h.type === "walk") return; // a walk isn't a program interval session
       var k = dateKey(new Date(h.date)); var t = keyToDate(k).getTime();
       if (t >= s && t <= e && !seen[k]) { seen[k] = true; count++; }
     });
@@ -2969,7 +3148,8 @@
       histMap[key].forEach(function (h) {
         var detail = h.run != null ? " · " + h.reps + "×(" + fmtNum(h.run) + "/" + fmtNum(h.walk) + " min)" : "";
         if (h.distanceMeters) detail += " · " + formatDistance(h.distanceMeters);
-        lines.push('✅ Completed run — ' + fmtClock(h.totalSeconds) + detail);
+        var label = h.type === "walk" ? "🚶 Walk" : "✅ Completed run";
+        lines.push(label + ' — ' + fmtClock(h.totalSeconds) + detail);
       });
     }
     if (acts[key]) lines.push('🏀 Basketball' + (keyIsPastOrToday(key) ? '' : ' (planned)'));
@@ -3139,14 +3319,17 @@
     releaseWakeLock();
     try { $workoutAudio.pause(); $workoutAudio.currentTime = 0; } catch (e) {}
     prepareTrack();
+    if (walkTickHandle) { clearInterval(walkTickHandle); walkTickHandle = null; }
+    stopGpsTracking();
+    walkState = "idle";
+    walkAccumSec = 0;
+    walkStartedAt = null;
     var th = null; try { th = localStorage.getItem("rwTimerTheme"); } catch (e) {}
     if (th) applyTheme(th);
     refreshStreak();
     renderIdleOrDone();
     updateLevelBadge();
-    $btnStart.textContent = "Start";
-    $btnStart.classList.remove("hidden");
-    $btnPause.classList.add("hidden");
+    resetWalkUi();
   }
 
   function backupStatus(msg, kind) {
@@ -3197,7 +3380,7 @@
   document.getElementById("backup-restore").addEventListener("click", function () {
     var text = (document.getElementById("backup-paste").value || "").trim();
     if (!text) { backupStatus("Paste a backup (or choose a file) first.", "err"); return; }
-    if (state === STATE_RUNNING || state === STATE_PAUSED) {
+    if (state === STATE_RUNNING || state === STATE_PAUSED || walkState !== "idle") {
       if (!confirm("Restore will replace your current progress and stop the running workout. Continue?")) return;
     } else if (!confirm("Restore will replace all progress currently on this device. Continue?")) {
       return;
@@ -3211,7 +3394,7 @@
 
   // ---------------- Prevent accidental navigation while running ----------------
   window.addEventListener("beforeunload", function (e) {
-    if (state === STATE_RUNNING || state === STATE_PAUSED) {
+    if (state === STATE_RUNNING || state === STATE_PAUSED || walkState !== "idle") {
       e.preventDefault();
       e.returnValue = "";
     }
