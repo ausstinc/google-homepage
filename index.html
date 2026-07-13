@@ -772,6 +772,15 @@
   #route-svg-wrap { margin-top: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 10px; }
   #route-svg-wrap svg { display: block; width: 100%; height: auto; }
   #route-svg-wrap .route-caption { font-size: 0.75rem; color: var(--text-dim); text-align: center; margin-top: 4px; }
+  #splits-wrap { margin-top: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+  .splits-title { font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin-bottom: 4px; }
+  .split-row { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .split-row:last-child { border-bottom: none; }
+  .split-row.split-head { color: var(--text-dim); font-size: 0.7rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em; }
+  .split-label { flex: 1; text-align: left; font-weight: 600; }
+  .split-run .split-label { color: var(--run); }
+  .split-walk .split-label { color: var(--walk); }
+  .split-dist, .split-pace { flex: 0 0 68px; text-align: right; font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
@@ -2051,6 +2060,7 @@
   var gpsLastFix = null;      // {lat, lon, t} — last accepted fix, for distance deltas
   var gpsLastStored = null;   // last fix actually pushed into gpsPoints (throttled)
   var gpsPoints = [];         // [{lat, lon}] recorded route for the current workout
+  var segmentDistances = [];  // meters accumulated per segments[] index — powers per-rep splits
 
   function haversineMeters(lat1, lon1, lat2, lon2) {
     var R = 6371000;
@@ -2066,6 +2076,7 @@
     gpsLastFix = null;
     gpsLastStored = null;
     gpsPoints = [];
+    segmentDistances = [];
   }
 
   function startGpsTracking() {
@@ -2101,6 +2112,9 @@
             var d = haversineMeters(gpsLastFix.lat, gpsLastFix.lon, lat, lon);
             if (d / dt <= GPS_MAX_SPEED_MPS) {
               gpsDistanceMeters += d;
+              if (state === STATE_RUNNING && currentIndex >= 0) {
+                segmentDistances[currentIndex] = (segmentDistances[currentIndex] || 0) + d;
+              }
               if (!gpsLastStored || haversineMeters(gpsLastStored.lat, gpsLastStored.lon, lat, lon) >= GPS_STORE_MIN_METERS ||
                   (now - gpsLastStored.t) / 1000 >= GPS_STORE_MIN_SECONDS) {
                 gpsPoints.push({ lat: lat, lon: lon });
@@ -2450,10 +2464,17 @@
     var runSec = segments.reduce(function (s, seg) { return s + (seg.type === "run" ? seg.duration : 0); }, 0);
     var finalDistance = settings.gpsEnabled ? gpsDistanceMeters : 0;
     var finalRoute = settings.gpsEnabled ? gpsPoints.slice() : null;
+    var finalSplits = [];
+    if (settings.gpsEnabled) {
+      segments.forEach(function (seg, i) {
+        if (seg.rep != null) finalSplits.push({ type: seg.type, rep: seg.rep, duration: seg.duration, distanceMeters: Math.round(segmentDistances[i] || 0) });
+      });
+    }
 
     var histEntry = { date: new Date().toISOString(), totalSeconds: totalSec, reps: settings.reps, run: settings.run, walk: settings.walk };
     if (finalDistance > 0) histEntry.distanceMeters = Math.round(finalDistance);
     if (finalRoute && finalRoute.length > 1) histEntry.route = finalRoute;
+    if (finalSplits.length) histEntry.splits = finalSplits;
     pushHistory(histEntry);
 
     // time-of-day flags for Early Bird / Night Owl badges
@@ -3172,6 +3193,22 @@
         routeWrap.innerHTML = svg + '<div class="route-caption">Route sketch (shape only, not to map scale)</div>';
         routeEl.appendChild(routeWrap);
       }
+    }
+
+    var withSplits = histMap[key] && histMap[key].filter(function (h) { return h.splits && h.splits.length; })[0];
+    if (withSplits) {
+      var splitsWrap = document.createElement("div");
+      splitsWrap.id = "splits-wrap";
+      var rows = withSplits.splits.map(function (s) {
+        var label = (s.type === "run" ? "🏃 Run " : "🚶 Walk ") + s.rep;
+        return '<div class="split-row split-' + s.type + '"><span class="split-label">' + label + '</span>' +
+          '<span class="split-dist">' + formatDistance(s.distanceMeters) + '</span>' +
+          '<span class="split-pace">' + formatPace(s.distanceMeters, s.duration) + '</span></div>';
+      }).join("");
+      splitsWrap.innerHTML = '<div class="splits-title">Splits</div>' +
+        '<div class="split-row split-head"><span class="split-label"></span><span class="split-dist">Dist</span><span class="split-pace">Pace</span></div>' +
+        rows;
+      routeEl.appendChild(splitsWrap);
     }
 
     var bballBtn = document.createElement("button");
