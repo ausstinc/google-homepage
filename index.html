@@ -667,6 +667,7 @@
   .dex-info { flex: 1; min-width: 0; }
   .dex-name { font-weight: 700; font-size: 0.9rem; }
   .dex-condition { font-size: 0.72rem; color: var(--warmup); font-weight: 700; margin-top: 2px; }
+  .dex-condition.earned { color: var(--text-dim); font-weight: 600; }
   .dex-add-btn {
     background: var(--run); color: #0b0d10; border: none; border-radius: 8px;
     padding: 8px 12px; font-weight: 800; font-size: 0.78rem; cursor: pointer; flex-shrink: 0;
@@ -1335,6 +1336,17 @@
     return { leveledUp: leveledUp, evolutions: evolutions, newLevel: member.level };
   }
 
+  // Applies EXP to every active team member (up to 6), not just the lead —
+  // a completed run benefits your whole team, like an EXP-share.
+  function applyPokemonExpToTeam(exp) {
+    var results = [];
+    pokemonState.team.forEach(function (member) {
+      results.push({ member: member, result: applyPokemonExp(member, exp) });
+    });
+    if (results.length) savePokemon();
+    return results;
+  }
+
   // Replays real run history through the same base formula finishWorkout()
   // uses (time + run-time + distance bonus, no streak multiplier — a
   // one-time fairness approximation, not a bit-exact historical replay) so a
@@ -1517,7 +1529,7 @@
             '<div class="dex-name">' + species.name + '</div>' +
             '<div class="poke-types">' + typeBadges(species.types) + '</div>' +
             '<span class="rarity-tag rarity-' + species.rarity + '">' + species.rarity + '</span>' +
-            (unlocked ? '' : '<div class="dex-condition">🔒 ' + a.label + '</div>') +
+            (unlocked ? '<div class="dex-condition earned">✅ ' + a.label + '</div>' : '<div class="dex-condition">🔒 ' + a.label + '</div>') +
           '</div>';
         if (unlocked) {
           var btn = document.createElement("button");
@@ -2487,13 +2499,7 @@
     var program = advanceProgram();                     // may load next week + set gradFlag
     var badges = checkBadges();                          // unlock newly-earned badges
     var pokeUnlocks = checkPokemonUnlocks();             // unlock newly-earned Pokémon
-    var pokeResult = null;
-    if (pokemonState.starterId && pokemonState.team.length) {
-      // Same total the old rank XP would have received — just also applied
-      // to the lead Pokémon now.
-      pokeResult = applyPokemonExp(pokemonState.team[0], base.xpGain + quest.bonus);
-      savePokemon();
-    }
+    var pokeResults = pokemonState.starterId ? applyPokemonExpToTeam(base.xpGain + quest.bonus) : [];
     updateLevelBadge();
 
     currentIndex = -1;
@@ -2503,7 +2509,7 @@
     showReward({
       xpGain: base.xpGain, streak: base.streak, distanceMeters: base.distanceMeters,
       questBonus: quest.bonus, quests: quest.quests, badges: badges, program: program,
-      pokeResult: pokeResult, pokeUnlocks: pokeUnlocks
+      pokeResults: pokeResults, pokeUnlocks: pokeUnlocks
     });
     $btnStart.textContent = "Start";
     $btnStart.classList.remove("hidden");
@@ -2521,13 +2527,15 @@
       lines.push('<span class="quest-pop">✅ Quest' + (r.quests.length > 1 ? 's' : '') + ': ' +
         r.quests.map(function (q) { return q.name; }).join(', ') + '  (+' + r.questBonus + ' XP)</span>');
     }
-    if (r.pokeResult && r.pokeResult.leveledUp) {
-      var leadSpecies = POKEDEX_BY_ID[pokemonState.team[0].id];
-      lines.push('<span class="levelup">⭐ ' + leadSpecies.name + ' leveled up to Lv ' + r.pokeResult.newLevel + '!</span>');
-    }
-    if (r.pokeResult && r.pokeResult.evolutions.length) {
-      r.pokeResult.evolutions.forEach(function (e) {
-        lines.push('<span class="evo-pop">✨ ' + e.from + ' evolved into ' + e.to + '!</span>');
+    if (r.pokeResults && r.pokeResults.length) {
+      r.pokeResults.forEach(function (pr) {
+        if (pr.result.leveledUp) {
+          var species = POKEDEX_BY_ID[pr.member.id];
+          lines.push('<span class="levelup">⭐ ' + species.name + ' leveled up to Lv ' + pr.result.newLevel + '!</span>');
+        }
+        pr.result.evolutions.forEach(function (e) {
+          lines.push('<span class="evo-pop">✨ ' + e.from + ' evolved into ' + e.to + '!</span>');
+        });
       });
     }
     if (r.badges && r.badges.length) {
@@ -2750,11 +2758,7 @@
     var quest = claimQuests();
     var badges = checkBadges();
     var pokeUnlocks = checkPokemonUnlocks();
-    var pokeResult = null;
-    if (pokemonState.starterId && pokemonState.team.length) {
-      pokeResult = applyPokemonExp(pokemonState.team[0], base.xpGain + quest.bonus);
-      savePokemon();
-    }
+    var pokeResults = pokemonState.starterId ? applyPokemonExpToTeam(base.xpGain + quest.bonus) : [];
     updateLevelBadge();
 
     renderIdleOrDone("Walk complete!");
@@ -2763,7 +2767,7 @@
     showReward({
       xpGain: base.xpGain, streak: base.streak, distanceMeters: base.distanceMeters,
       questBonus: quest.bonus, quests: quest.quests, badges: badges,
-      pokeResult: pokeResult, pokeUnlocks: pokeUnlocks
+      pokeResults: pokeResults, pokeUnlocks: pokeUnlocks
     });
     resetWalkUi();
     updateMediaSession("Walk complete");
