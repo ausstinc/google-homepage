@@ -1347,19 +1347,25 @@
     return results;
   }
 
+  // Approximates the XP a history entry would have earned via awardWorkout()'s
+  // base formula (time + run-time + distance bonus), minus the streak
+  // multiplier, which isn't recoverable after the fact. Used for historical
+  // replay and for estimating a "typical run" XP value elsewhere.
+  function estimateWorkoutXp(h) {
+    var runSec = (h.reps && h.run) ? h.reps * h.run * 60 : 0;
+    var dist = h.distanceMeters || 0;
+    var distXp = dist ? Math.round((dist / METERS_PER_MILE) * 8) : 0;
+    var base = Math.max(1, Math.round((h.totalSeconds || 0) / 60 + (runSec / 60) * 2));
+    return base + distXp;
+  }
+
   // Replays real run history through the same base formula finishWorkout()
   // uses (time + run-time + distance bonus, no streak multiplier — a
   // one-time fairness approximation, not a bit-exact historical replay) so a
   // new starter reflects running already done instead of starting at 0 EXP.
   function computeHistoricalPokemonExp() {
     var total = 0;
-    loadHistory().forEach(function (h) {
-      var runSec = (h.reps && h.run) ? h.reps * h.run * 60 : 0;
-      var dist = h.distanceMeters || 0;
-      var distXp = dist ? Math.round((dist / METERS_PER_MILE) * 8) : 0;
-      var base = Math.max(1, Math.round((h.totalSeconds || 0) / 60 + (runSec / 60) * 2));
-      total += base + distXp;
-    });
+    loadHistory().forEach(function (h) { total += estimateWorkoutXp(h); });
     return total;
   }
 
@@ -1564,7 +1570,8 @@
 
   // ---------------- Activities (basketball / cross-training) ----------------
   var ACTIVITIES_KEY = "rwActivities";
-  var BBALL_XP = 15;
+  var BBALL_XP = 15;              // fallback when there's no run history yet to average
+  var BBALL_DURATION_SECONDS = 3600; // assumed length of a game, for time-based totals/quests
   function loadActivities() { try { return JSON.parse(localStorage.getItem(ACTIVITIES_KEY)) || {}; } catch (e) { return {}; } }
   function saveActivities(a) { try { localStorage.setItem(ACTIVITIES_KEY, JSON.stringify(a)); } catch (e) {} }
   function keyToDate(key) { var p = key.split("-").map(Number); var d = new Date(p[0], p[1] - 1, p[2]); d.setHours(0, 0, 0, 0); return d; }
@@ -1573,6 +1580,18 @@
     var a = loadActivities(), n = 0;
     Object.keys(a).forEach(function (k) { if (keyIsPastOrToday(k)) n++; });
     return n;
+  }
+
+  // A game's XP is set to the average of your last 3 real interval
+  // workouts, so it's worth roughly what your actual running has been
+  // worth lately, not an arbitrary flat number. Falls back to BBALL_XP
+  // if there's no run history yet to average.
+  function bballAverageXp() {
+    var runs = loadHistory().filter(function (h) { return h.reps != null; });
+    if (!runs.length) return BBALL_XP;
+    var last3 = runs.slice(-3);
+    var sum = last3.reduce(function (s, h) { return s + estimateWorkoutXp(h); }, 0);
+    return Math.max(1, Math.round(sum / last3.length));
   }
 
   // The set of "active days" = days with a completed run OR a logged basketball day (today or earlier).
@@ -1605,15 +1624,45 @@
     savePlayer();
   }
 
-  // Toggle a basketball day on/off. Awards/refunds XP for past-or-today games and keeps the streak in sync.
+  // Toggle a basketball day on/off. A past-or-today game counts as a real
+  // workout — it's logged to history (so it counts toward workouts/quests/
+  // Pokémon EXP, same as a run or walk) and removed from history if
+  // un-marked. Badges, quest claims, and Pokémon EXP earned along the way
+  // are not revoked on removal — same one-way rule every other achievement
+  // in this app already follows.
   function toggleBasketball(key) {
     var acts = loadActivities();
     if (acts[key]) {
       delete acts[key];
-      if (player.bballXp[key]) { delete player.bballXp[key]; player.xp = Math.max(0, player.xp - BBALL_XP); }
+      var logged = player.bballXp[key];
+      if (logged === true) {
+        // legacy flat-XP entry from before basketball counted as a workout
+        player.xp = Math.max(0, player.xp - BBALL_XP);
+        delete player.bballXp[key];
+      } else if (logged) {
+        player.xp = Math.max(0, player.xp - logged.xp);
+        player.workouts = Math.max(0, player.workouts - 1);
+        player.totalSeconds = Math.max(0, player.totalSeconds - logged.seconds);
+        delete player.bballXp[key];
+        var hist = loadHistory().filter(function (h) { return !(h.type === "basketball" && h.activityKey === key); });
+        try { localStorage.setItem(HISTORY_KEY, JSON.stringify(hist)); } catch (e) {}
+      }
+      savePlayer();
     } else {
       acts[key] = true;
-      if (keyIsPastOrToday(key) && !player.bballXp[key]) { player.bballXp[key] = true; player.xp += BBALL_XP; }
+      if (keyIsPastOrToday(key) && !player.bballXp[key]) {
+        var xpAmount = bballAverageXp();
+        var gameDate = keyToDate(key); gameDate.setHours(12, 0, 0, 0);
+        pushHistory({ date: gameDate.toISOString(), totalSeconds: BBALL_DURATION_SECONDS, type: "basketball", activityKey: key });
+        var base = awardWorkout(BBALL_DURATION_SECONDS, 0, 0, false, xpAmount);
+        var quest = claimQuests();
+        checkPokemonUnlocks();
+        if (pokemonState.starterId) applyPokemonExpToTeam(base.xpGain + quest.bonus);
+        // Only the direct workout XP is tracked for reversal — quest bonus,
+        // badges, and Pokémon EXP are one-way, same as everywhere else.
+        player.bballXp[key] = { xp: base.xpGain, seconds: BBALL_DURATION_SECONDS };
+        savePlayer();
+      }
     }
     saveActivities(acts);
     refreshStreak();
@@ -1623,14 +1672,21 @@
 
   // Award base XP + update streak/stats for a finished workout.
   // Returns the base info; quests/badges/program are layered on in finishWorkout.
-  function awardWorkout(totalSec, runSec, distanceMeters, isRunDistance) {
+  // xpOverride, when given, replaces the formula-computed xpGain outright
+  // (used by basketball, whose XP is set to a recent-runs average instead).
+  function awardWorkout(totalSec, runSec, distanceMeters, isRunDistance, xpOverride) {
     // history already includes this workout when this is called
     refreshStreak();
     player.lastDate = todayStr();
 
-    var streakMult = 1 + Math.min(player.streak - 1, 5) * 0.1; // up to 1.5x
-    var distanceXp = distanceMeters ? Math.round((distanceMeters / METERS_PER_MILE) * 8) : 0; // +8 XP/mile
-    var xpGain = Math.max(1, Math.round((totalSec / 60 + (runSec / 60) * 2) * streakMult) + distanceXp);
+    var xpGain;
+    if (xpOverride != null) {
+      xpGain = xpOverride;
+    } else {
+      var streakMult = 1 + Math.min(player.streak - 1, 5) * 0.1; // up to 1.5x
+      var distanceXp = distanceMeters ? Math.round((distanceMeters / METERS_PER_MILE) * 8) : 0; // +8 XP/mile
+      xpGain = Math.max(1, Math.round((totalSec / 60 + (runSec / 60) * 2) * streakMult) + distanceXp);
+    }
 
     var before = levelFromXp(player.xp);
     player.xp += xpGain;
@@ -2998,7 +3054,7 @@
     var s = keyToDate(startKey).getTime(), e = keyToDate(endKey).getTime();
     var seen = {}, count = 0;
     loadHistory().forEach(function (h) {
-      if (h.type === "walk") return; // a walk isn't a program interval session
+      if (h.type === "walk" || h.type === "basketball") return; // neither is a program interval session
       var k = dateKey(new Date(h.date)); var t = keyToDate(k).getTime();
       if (t >= s && t <= e && !seen[k]) { seen[k] = true; count++; }
     });
@@ -3173,11 +3229,13 @@
       histMap[key].forEach(function (h) {
         var detail = h.run != null ? " · " + h.reps + "×(" + fmtNum(h.run) + "/" + fmtNum(h.walk) + " min)" : "";
         if (h.distanceMeters) detail += " · " + formatDistance(h.distanceMeters);
-        var label = h.type === "walk" ? "🚶 Walk" : "✅ Completed run";
+        var label = h.type === "walk" ? "🚶 Walk" : h.type === "basketball" ? "🏀 Basketball" : "✅ Completed run";
         lines.push(label + ' — ' + fmtClock(h.totalSeconds) + detail);
       });
     }
-    if (acts[key]) lines.push('🏀 Basketball' + (keyIsPastOrToday(key) ? '' : ' (planned)'));
+    // Past/today games are already shown above via history; this only
+    // covers a future-planned mark, which has no history entry yet.
+    if (acts[key] && !keyIsPastOrToday(key)) lines.push('🏀 Basketball (planned)');
     if (!histMap[key]) {
       if (maps.planned[key]) lines.push('📋 Confirmed: ' + maps.planned[key].name);
       else if (maps.missed[key]) lines.push('<span style="color:var(--warmup)">⚠️ Missed — confirmed but not completed.</span>');
